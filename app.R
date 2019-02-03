@@ -2,9 +2,10 @@
 ## Shinyapps.io detects and installs packages for you automatically when you call deployApp(). 
 ## Do not need, nor should have any calls to install.packages() as below anywhere in your source code.
 ## Below installation check is only for local installation
-# # CRAN packages----
+# # 1. CRAN packages----
 # packages <- c("shinydashboard",
-#               "DT","shiny",
+#               "DT",
+#               "shiny",
 #               "shinythemes",
 #               "shinyFiles",
 #               "shinyWidgets",
@@ -20,15 +21,20 @@
 #               "RColorBrewer",
 #               "pheatmap",
 #               "zip",
-#               "plotly")
+#               "plotly",
+#               "farver",
+#               "units",
+#               "fgsea")
 # if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
 #   install.packages(setdiff(packages, rownames(installed.packages())))
 # }
+#
 # # 2. Bioconductor packages----
 # if (!requireNamespace("BiocManager", quietly = TRUE))
 #   install.packages("BiocManager")
 # BiocManager::install("BiocInstaller", version = "3.8")
 # BiocManager::install("DESeq2", version = "3.8")
+# BiocManager::install("DEGseq", version = "3.8")
 # BiocManager::install("GOSemSim", version = "3.8")
 # BiocManager::install("ChIPseeker", version = "3.8")
 # BiocManager::install("TxDb.Mmusculus.UCSC.mm10.knownGene", version = "3.8")
@@ -49,8 +55,6 @@ library(shinythemes)
 library(shinyFiles)
 library(shinyWidgets)
 
-
-#library(packrat)
 library(ggplot2)
 library(plotly)
 library(stringr)
@@ -72,8 +76,6 @@ library(ChIPseeker)
 library(TxDb.Mmusculus.UCSC.mm10.knownGene)
 library(DSS)
 
-
-
 # Determine the OS
 sysOS <- Sys.info()[['sysname']]
 
@@ -86,631 +88,634 @@ if (sysOS == "Linux") {
 }
 
 # source functions
-source("plots.R")
-source("data_prep.R")
+source("source/plots.R")
+source("source/data_prep.R")
 
-ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"
-),
-dashboardSidebar(sidebarMenu(menuItem(text = "Introduction", 
-                                      tabName = "introduction", 
-                                      icon = icon("dashboard")),
-                             menuItem(text = "FASTQ Processing", 
-                                      tabName = "count", 
-                                      icon = icon("th")),
-                             menuItem(text = "RNA-seq Analysis", 
-                                      tabName = "rna-seq_analysis", 
-                                      icon = icon("th")),
-                             menuItem(text = "DNA MethylSeq Analysis",
-                                      tabName = "dna-seq_analysis",
-                                      icon = icon("th")),
-                             menuItem(text = "DNA vs RNA",
-                                      tabName = "dna_vs_rna",
-                                      icon = icon("th")))),
-dashboardBody(tabItems(
-  ## ---------- Introduction ------------
-  tabItem(tabName = "introduction",
-          h2("Instructions"),
-          p("This interactive web application (NGS pipeline) is developed in R with Shiny to 1). Align RNA and DNA-seq;  
-            2). conduct differential expression (DE) analysis with ",
-            a("DEGseq, ", href="https://bioconductor.org/packages/release/bioc/html/DEGseq.html"),
-            a("DESeq2 ", href="http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
-            " based on the provided input data (raw count table and experimental design table).",
-            style="padding-left: 0em"),
-          h3("1. RNA Analysis Data input", style="padding-left: 1em"),
-          h4("1.1 Experimental Design Table", style="padding-left: 3em"), 
-          p("This input data contains summarized experimental design information for each sample. 
-            The first column, Sample Name, will be the same as in Count Table. The Second column, 
-            Sample Label, will be shown in the result plots and tables. A template of the design table can be downloaded ",
-            a("here.", href="https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y")
-            , style="padding-left: 5em")
-          
-),
-
-## -------- FASTQ Processing -------------------
-tabItem(tabName = "count",
-        sidebarPanel(
-          wellPanel(shinyDirButton(id = "directory", 
-                                   label = "Select FASTQ Folder", 
-                                   title = "Please select a folder"),
-                    radioButtons(inputId = "is_rna",
-                                 label = "",
-                                 inline = TRUE,
-                                 choices = list("RNA" = TRUE, 
-                                                "DNA" = FALSE),
-                                 selected = TRUE),
-                    radioButtons(inputId = "isSingleEnd",
-                                 label = "Sequencing:",
-                                 inline = TRUE,
-                                 choices = list("Single Ended" = "true", 
-                                                "Pair Ended" = "false"),
-                                 selected = "true"),
+ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
+                    dashboardSidebar(sidebarMenu(menuItem(text = "Introduction", 
+                                                          tabName = "introduction", 
+                                                          icon = icon("dashboard")),
+                                                 menuItem(text = "FASTQ Processing", 
+                                                          tabName = "count", 
+                                                          icon = icon("th")),
+                                                 menuItem(text = "RNA-seq Analysis", 
+                                                          tabName = "rna-seq_analysis", 
+                                                          icon = icon("th")),
+                                                 menuItem(text = "DNA MethylSeq Analysis",
+                                                          tabName = "dna-seq_analysis",
+                                                          icon = icon("th")),
+                                                 menuItem(text = "DNA vs RNA",
+                                                          tabName = "dna_vs_rna",
+                                                          icon = icon("th")))),
+                    dashboardBody(tabItems(
+                      ## ---------- Introduction ------------
+                      tabItem(tabName = "introduction",
+                              h2("Instructions"),
+                              p("This interactive web application (NGS pipeline) is developed in R with Shiny to 
+                                1) Align RNA and DNA-seq
+                                2) conduct differential expression (DE) analysis with ",
+                                a("DEGseq, ",
+                                  href="https://bioconductor.org/packages/release/bioc/html/DEGseq.html"),
+                                a("DESeq2 ",
+                                  href="http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
+                                " based on the provided input data (raw count table and experimental design table).",
+                                style="padding-left: 0em"),
+                              h3("1. RNA Analysis Data input", 
+                                 style="padding-left: 1em"),
+                              h4("1.1 Experimental Design Table",
+                                 style="padding-left: 3em"), 
+                              p("This input data contains summarized experimental design information for each sample. 
+                                The first column, Sample Name, will be the same as in Count Table. The Second column, 
+                                Sample Label, will be shown in the result plots and tables. 
+                                A template of the design table can be downloaded ",
+                                a("here.", 
+                                  href="https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y")
+                                , style="padding-left: 5em")
+                    ),
                     
-                    fluidRow(
-                      column(4,
-                             actionButton(inputId = "align",
-                                          label = "Align"))),
+                    ## -------- FASTQ Processing -------------------
+                    tabItem(tabName = "count",
+                            sidebarPanel(
+                              wellPanel(shinyDirButton(id = "directory", 
+                                                       label = "Select FASTQ Folder", 
+                                                       title = "Please select a folder"),
+                                        radioButtons(inputId = "is_rna",
+                                                     label = "",
+                                                     inline = TRUE,
+                                                     choices = list("RNA" = TRUE, 
+                                                                    "DNA" = FALSE),
+                                                     selected = TRUE),
+                                        radioButtons(inputId = "isSingleEnd",
+                                                     label = "Sequencing:",
+                                                     inline = TRUE,
+                                                     choices = list("Single Ended" = "true", 
+                                                                    "Pair Ended" = "false"),
+                                                     selected = "true"),
+                                        
+                                        fluidRow(
+                                          column(4,
+                                                 actionButton(inputId = "align",
+                                                              label = "Align"))),
+                                        
+                                        fluidRow(
+                                          checkboxInput(inputId = "show_advanced_para",
+                                                        label = "Show Advanced Setting",
+                                                        value = FALSE)),
+                                        conditionalPanel(condition = "input.show_advanced_para == true",
+                                                         textInput(inputId = "job_name",
+                                                                   label = "job name (mmddy + x job)",
+                                                                   value = paste0(substr(format(Sys.Date(),"%m%d%y"),1,4),
+                                                                                  substr(format(Sys.Date(),"%m%d%y"),6,6),
+                                                                                  "1")),
+                                                         selectInput(inputId = "ntasks",
+                                                                     label = "ntasks",
+                                                                     choices = c(1),
+                                                                     multiple = FALSE),
+                                                         selectInput(inputId = "cpus_per_task",
+                                                                     label = "cpus per task",
+                                                                     choices = c(1:32),
+                                                                     multiple = FALSE,
+                                                                     selected = 2),
+                                                         selectInput(inputId = "mem",
+                                                                     label = "RAM",
+                                                                     choices = c(paste0(c(16, 32, 64, 120, 192), "GB")),
+                                                                     multiple = FALSE,
+                                                                     selected = "64GB"),
+                                                         selectInput(inputId = "time",
+                                                                     label = "total run time limit (HH:MM:SS)",
+                                                                     choices = c(paste0(c(2, 4, 6, 8, 12, 24),":00:00")),
+                                                                     multiple = FALSE,
+                                                                     selected = "2:00:00"),
+                                                         textInput(inputId = "output",
+                                                                   label = "STDOUT output file",
+                                                                   value = "slurm.%N.%j.out"),
+                                                         textInput(inputId = "error",
+                                                                   label = "STDERR output file (optional)",
+                                                                   value = "slurm.%N.%j.err"),
+                                                         selectInput(inputId = "partition",
+                                                                     label = "partition",
+                                                                     choices = c("p_kongt_1", "main"),
+                                                                     multiple = FALSE,
+                                                                     selected = "p_kongt_1")))),
+                            mainPanel(tags$h3("File Directory"),
+                                      verbatimTextOutput(outputId = "fileDir"),
+                                      tags$h3("Program"),
+                                      verbatimTextOutput("program"))),
                     
-                    fluidRow(
-                      checkboxInput(inputId = "show_advanced_para",
-                                    label = "Show Advanced Setting",
-                                    value = FALSE)),
-                    conditionalPanel(condition = "input.show_advanced_para == true",
-                                     textInput(inputId = "job_name",
-                                               label = "job name (mmddy + x job)",
-                                               value = paste0(substr(format(Sys.Date(),"%m%d%y"),1,4),
-                                                              substr(format(Sys.Date(),"%m%d%y"),6,6),
-                                                              "1")),
-                                     selectInput(inputId = "ntasks",
-                                                 label = "ntasks",
-                                                 choices = c(1),
-                                                 multiple = FALSE),
-                                     selectInput(inputId = "cpus_per_task",
-                                                 label = "cpus per task",
-                                                 choices = c(1:32),
-                                                 multiple = FALSE,
-                                                 selected = 2),
-                                     selectInput(inputId = "mem",
-                                                 label = "RAM",
-                                                 choices = c(paste0(c(16, 32, 64, 120, 192), "GB")),
-                                                 multiple = FALSE,
-                                                 selected = "64GB"),
-                                     selectInput(inputId = "time",
-                                                 label = "total run time limit (HH:MM:SS)",
-                                                 choices = c(paste0(c(2, 4, 6, 8, 12, 24),":00:00")),
-                                                 multiple = FALSE,
-                                                 selected = "2:00:00"),
-                                     textInput(inputId = "output",
-                                               label = "STDOUT output file",
-                                               value = "slurm.%N.%j.out"),
-                                     textInput(inputId = "error",
-                                               label = "STDERR output file (optional)",
-                                               value = "slurm.%N.%j.err"),
-                                     selectInput(inputId = "partition",
-                                                 label = "partition",
-                                                 choices = c("p_kongt_1", "main"),
-                                                 multiple = FALSE,
-                                                 selected = "p_kongt_1")))),
-        mainPanel(tags$h3("File Directory"),
-                  verbatimTextOutput(outputId = "fileDir"),
-                  tags$h3("Program"),
-                  verbatimTextOutput("program"))),
-
-## ---------------- rna seq analysis -----------------
-tabItem(tabName = "rna-seq_analysis",
-        tabsetPanel(
-          ## ------- read in data -------------
-          tabPanel("Read In Data", 
-                   wellPanel(
-                     fluidRow(
-                       column(4,
-                              textInput(inputId = "project_name",
-                                        label = "Enter project name (no space) below:",
-                                        value = "Enter project name"))),
-                     fluidRow(
-                       column(6,
-                              fileInput(inputId = "rna_count",
-                                        label = "Select Count Table File",
-                                        accept = c(".csv")))),
-                     fluidRow(
-                       column(6,
-                              fileInput(inputId = "rna_info",
-                                        label = "Select Design File",
-                                        accept = c(".csv"))))),
-                   
-                   
-                   wellPanel(
-                     tags$h4("View Count Table:"),
-                     DT::dataTableOutput(outputId = 'display_rna_count')),
-                   wellPanel(
-                     tags$h4("View Sample Information Table:"),
-                     DT::dataTableOutput(outputId = 'display_rna_info'))),
-          
-          
-          ## ------- exploratory Analysis ---------
-          tabPanel("Exploratory Analysis", 
-                   wellPanel(
-                     tags$h3("Data Preparation"),
-                     fluidRow(
-                       column(2,
-                              selectInput(inputId = "gene_col_selected_expl",
-                                          label = "Select gene column:",
-                                          choices = NULL,
-                                          multiple = FALSE,
-                                          selected = NULL)),
-                       column(5,
-                              selectInput(inputId = "sample_label_selected_expl",
-                                          label = "Select samples (same order as in histogram and boxplot):",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(3,
-                              selectInput(inputId = "covariate_selected_expl",
-                                          label = "Group by (select one):",
-                                          choices = NULL,
-                                          multiple = FALSE,
-                                          selected = NULL))),
-                     fluidRow(
-                       column(2,
-                              actionButton(inputId = "generate_result_expl",
-                                           label = "Generate Result"))
-                     )),
-                   wellPanel(
-                     tags$h3("Count Histogram"),
-                     plotlyOutput(outputId = "display_count_hist")),
-                   
-                   wellPanel(
-                     tags$h3("Between-sample Distribution: Boxplot"),
-                     fluidRow(
-                       column(6,
-                              plotlyOutput(outputId = "display_boxplot")))),
-                   wellPanel(
-                     fluidRow(
-                       column(6,
-                              wellPanel(
-                                tags$h3("Heatmap Sampel-to-sample Distance"),
-                                fluidRow(
-                                  plotlyOutput(outputId = "display_heatmap_expl")
-                                ))),
-                       column(6,
-                              wellPanel(
-                                tags$h3("PCA Plot"),
-                                fluidRow(plotlyOutput(outputId = "display_pca_expl"))))))
-          ),
-          
-          
-          ## ------------- DEGseq --------------
-          tabPanel("DE Analysis: DEGseq",
-                   # Data preparation
-                   wellPanel(
-                     tags$h3("Data Preparation"),
-                     fluidRow(
-                       column(2,
-                              selectInput(inputId = "gene_col_selected_degseq",
-                                          label = "Select gene column",
-                                          choices = NULL,
-                                          multiple = FALSE,
-                                          selected = NULL)),
-                       column(4,
-                              selectInput(inputId = "sample_label_selected_degseq",
-                                          label = "Select 3 Samples in order: trt1 trt2 trt3",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(4,
-                              textInput(inputId = "row_sum",
-                                        label = "Remove if sum across 3 samples is <",
-                                        value = "10"))
-                     ),
-                     fluidRow(column(2,
-                                     actionButton(inputId = "trim",
-                                                  label = "Generate Count Table"))),
-                     
-                     fluidRow(
-                       column(6,
-                              tags$h4("Trimmed Count Table Summary:"),
-                              verbatimTextOutput("trimmed_left"),
-                              verbatimTextOutput("display_trimmed_ct")))),
-                   
-                   ## DE analysis
-                   wellPanel(
-                     tags$h3("DE Analysis"),
-                     fluidRow(
-                       column(3,
-                              selectInput(inputId = "q_value",
-                                          label = "q-value(Storey et al. 2003) <",
-                                          choices = c(0.01, 0.05, 0.1, 0.25),
-                                          selected = 0.01)),
-                       column(3,
-                              selectInput(inputId = "fold_change",
-                                          label = "Obs(log2(fold change)) >=",
-                                          choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-                                          selected = 1)),
-                       column(3,
-                              actionButton(inputId = "run_DEGexp",
-                                           label = "RUN DEGexp")),
-                       column(3,
-                              downloadButton(outputId = "download_degseq",
-                                             label = "Download Results"))),
-                     wellPanel(
-                       tags$h4("trt2-trt1 Result Table:"),
-                       DT::dataTableOutput(outputId = "result_table1_degseq")),
-                     
-                     wellPanel(
-                       tags$h4("trt3-trt2 Result Table:"),
-                       DT::dataTableOutput(outputId = "result_table2_degseq")),
-                     
-                     tags$h4("MA Plot:"),
-                     fluidRow(
-                       column(6,
-                              wellPanel(
-                                textInput(inputId = "ma1_title",
-                                          label = "Enter trt2-trt1 MA plot title below:",
-                                          value = ""),
-                                plotlyOutput(outputId = "ma1_degseq"))),
-                       column(6,
-                              wellPanel(
-                                textInput(inputId = "ma2_title",
-                                          label = "Enter trt3-trt2 MA plot title below:",
-                                          value = ""),
-                                plotlyOutput(outputId = "ma2_degseq")))),
-                     fluidRow(
-                       column(6,
-                              verbatimTextOutput(outputId = "result_kable1")),
-                       column(6,
-                              verbatimTextOutput(outputId = "result_kable2")))
-                   ),
-                   
-                   # Changes in Gene Expression
-                   wellPanel(
-                     tags$h3("Changes in Gene Expression"),
-                     fluidRow(
-                       column(3,
-                              actionButton(inputId = "generate_result_change",
-                                           label = "Generate Results")),
-                       column(3,
-                              downloadButton(outputId = "download_cige",
-                                             label = "Download Results"))),
-                     fluidRow(
-                       column(8,
-                              tableOutput(outputId = "change_number"))),
-                     fluidRow(
-                       column(6,
-                              plotOutput(outputId = "display_venn_diagram1")),
-                       column(6,
-                              plotOutput(outputId = "display_venn_diagram2"))),
-                     fluidRow(column(12,
-                                     tags$h4(" "))),
-                     fluidRow(
-                       column(6,
-                              plotOutput(outputId = "display_up.dn_dn.up_heatmap")),
-                       column(6,
-                              wellPanel(DT::dataTableOutput(outputId = "display_up.dn_dn.up_table"))))
-                   )),
-          
-          
-          ## --------------- DEseq2 ----------------
-          tabPanel("DE Analysis: DEseq2",
-                   
-                   # Data Preparation
-                   wellPanel(
-                     tags$h3("Data Preparation"),
-                     fluidRow(
-                       column(2,
-                              selectInput(inputId = "gene_col_selected_deseq2",
-                                          label = "Select gene column",
-                                          choices = NULL,
-                                          multiple = FALSE,
-                                          selected = NULL)),
-                       column(4,
-                              selectInput(inputId = "sample_label_selected_deseq2",
-                                          label = "Select samples for DE analysis",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(3,
-                              textInput(inputId = "row_sum_deseq2",
-                                        label = "Remove if total across samples is <",
-                                        value = "10")),
-                       column(2,
-                              selectInput(inputId = "covariate_selected_deseq2",
-                                          label = "Select covariate(s)",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL))),
-                     fluidRow(
-                       column(3,
-                              radioButtons(inputId = "design_deseq2",
-                                           label = "Select Design Formula:",
-                                           choices = list("Simple Comparison" = "o_interaction",
-                                                          "Combine Level" = "combine_level"
-                                                          # "With Interaction" = "w_interaction", 
-                                           ),
-                                           selected = NULL)),
-                       column(2,
-                              actionButton(inputId = "generate_dds_from_matrix",
-                                           label = "Generate DESeqDataSet From Matrix"))),
-                     fluidRow(
-                       column(6,
-                              tags$h4("DESeqDataSet Summary:"),
-                              verbatimTextOutput(outputId = "trim_left_number"),
-                              verbatimTextOutput("display_formula"))),
-                     fluidRow(
-                       verbatimTextOutput("test1"),
-                       verbatimTextOutput("test2")
-                     )
-                   ),
-                   
-                   # DE analysis
-                   wellPanel(
-                     tags$h3("DE Analysis"),
-                     fluidRow(column(4,
-                                     selectInput(inputId = "deseq2_p_value",
-                                                 label = "FDR adjusted p-value <",
-                                                 choices = c(0.01, 0.05, 0.1, 0.25),
-                                                 selected = 0.01)),
-                              column(4,
-                                     selectInput(inputId = "deseq2_fold_change",
-                                                 label = "Obs(log2(fold change)) >=",
-                                                 choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-                                                 selected = 1)),
-                              column(3,
-                                     actionButton(inputId = "run_deseq",
-                                                  label = "Run DESeq"))),
-                     fluidRow(column(4,
-                                     selectInput(inputId = "comp1",
-                                                 label = "Select numerator level for the fold change",
-                                                 choices = NULL,
-                                                 multiple = FALSE,
-                                                 selected = NULL)),
-                              column(4,
-                                     selectInput(inputId = "comp2",
-                                                 label = "Select denominator leve for the fold changel",
-                                                 choices = NULL,
-                                                 multiple = FALSE,
-                                                 selected = NULL)),
-                              column(2,
-                                     actionButton(inputId = "extract_results_deseq2",
-                                                  label = "Extract Results")),
-                              column(2,
-                                     downloadButton(outputId = "download_deseq2",
-                                                    label = "Download Results"))),
-                     fluidRow(verbatimTextOutput(outputId = "deseq2_results_dir")),
-                     
-                     wellPanel(tags$h4("Result Table:"),
-                               DT::dataTableOutput(outputId = "display_dtf_res_contrast")),
-                     wellPanel(tags$h4("MA Plot:"),
-                               fluidRow(column(3,
-                                               textInput(inputId = "enter_deseq2_ma_title",
-                                                         label = "Enter MA plot title below:",
-                                                         value = ""))),
-                               fluidRow(column(6,
-                                               plotOutput(outputId = "display_deseq2_ma")),
-                                        column(6,
-                                               tableOutput(outputId = "deseq2_sign_number")))),
-                     wellPanel(tags$h4("Plot Counts"),
-                               fluidRow(column(3,
-                                               textInput(inputId = "enter_gene_name",
-                                                         label = "Enter one gene name:")),
-                                        column(3,
-                                               selectInput(inputId = "intgroup",
-                                                           label = "Select interested covariate(s) :",
-                                                           choices = NULL,
-                                                           multiple = TRUE,
-                                                           selected = NULL)),
-                                        column(2,
-                                               actionButton(inputId = "generate_count_plot",
-                                                            label = "Generate Count Plot"))),
-                               fluidRow(column(6,
-                                               plotOutput(outputId = "deseq2_count_plot"))))
-                   )
-          )
-        )
-),
-
-## ---------------- dna methylseq analysis ----------------
-tabItem(tabName = "dna-seq_analysis",
-        tabsetPanel(
-          ## ------------ annotation -----------
-          tabPanel("Annotation",
-                   wellPanel(tags$h3("Annotation"),
-                             shinyFilesButton(id = "dir_anno",
-                                              label = "Select Peak file",
-                                              title = "Please select a file",
-                                              multiple = FALSE,
-                                              class = c("csv")),
-                             tags$h4("File Directory"),
-                             verbatimTextOutput(outputId = "display_dir_anno"),
-                             fluidRow(column(2,textInput(inputId = "tssreg_from",
-                                                         label = "TSS range from",
-                                                         value = -3000)),
-                                      column(2,textInput(inputId = "tssreg_to",
-                                                         label = "TSS range to",
-                                                         value = 3000)),
-                                      column(2,textInput(inputId = "txdb",
-                                                         label = "TxDb object",
-                                                         value = "TxDb.Mmusculus.UCSC.mm10.knownGene")),
-                                      column(2,textInput(inputId = "annodb",
-                                                         label = "Annotation package",
-                                                         value = "org.Mm.eg.db"))
-                             ),
-                             actionButton(inputId = "annotate",
-                                          label = "Annotate")
-                   )
-          ),
-          ## ----- exploratory analysis -----------
-          tabPanel("Exploratory Analysis",
-                   wellPanel(fluidRow(column(3,
-                                             selectInput(inputId = "dna_sample_cols1",
-                                                         label = "Select sample columns for dtN",
-                                                         choices = NULL,
-                                                         multiple = TRUE,
-                                                         selected = NULL)),
-                                      column(4,
-                                             selectInput(inputId = "dna_sample_cols2",
-                                                         label = "Select sample columns for dtX (same order as dtN)",
-                                                         choices = NULL,
-                                                         multiple = TRUE,
-                                                         selected = NULL)),
-                                      
-                                      column(3,
-                                             textInput(inputId = "sample_name",
-                                                       label = "Enter sample name in order, seperated by comma",
-                                                       value = "")),
-                                      column(2,
-                                             actionButton(inputId = "generate_expl_dna",
-                                                          label = "Generate Results"))),
-                             verbatimTextOutput("test_dna")
-                             # verbatimTextOutput("test_dna1"),
-                             # verbatimTextOutput("test_dna2")
-                   ),
-                   
-                   wellPanel(tags$h3("Annotation by Region (%)"),
-                             plotOutput(outputId = "anno_by_reg")),
-                   wellPanel(tags$h3("CpG Histogram by Region"),
-                             plotOutput(outputId = "cpg_hist")),
-                   wellPanel(tags$h3("Methyl% by region"),
-                             plotOutput(outputId = "meth_by_region")),
-                   # heatmap
-                   wellPanel(
-                     tags$h3("Heatmap of Methyl% on Gene Level"),
-                     
-                     fluidRow(
-                       column(3,
-                              selectInput(inputId = "dna_heat_N",
-                                          label = "Select sample columns for dtN",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(3,
-                              selectInput(inputId = "dna_heat_X",
-                                          label = "Select sample columns for dtX",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(3,
-                              textInput(inputId = "dna_heat_sample_name",
-                                        label = "Enter sample name in order, seperated by comma",
-                                        value = ""))),
-                     fluidRow(
-                       column(3,
-                              selectInput(inputId = "dna_heat_reg",
-                                          label = "Select one region of interest",
-                                          choices = c("Promoter", "5' UTR", "Body", "3' UTR", "Downstream"),
-                                          multiple = FALSE,
-                                          selected = "Promoter")),
-                       column(4,
-                              textInput(inputId = "dna_heat_top_n",
-                                        label = "Display top n genes with largest positive and negative mythly% diff",
-                                        value = "20")),
-                       column(3,
-                              actionButton(inputId = "generate_dna_heat",
-                                           label = "Generate Result"))),
-                     fluidRow(
-                       column(6,
-                              plotlyOutput(outputId = "dna_heat1")),
-                       column(6,
-                              plotlyOutput(outputId = "dna_heat2"))
-                     )
-                     
-                   )
-          ),
-          
-          ## ------------ DSS ---------------
-          tabPanel("DE Analysis: DSS",
-                   wellPanel(
-                     tags$h3("Data Preparation"),
-                     tags$h4("Instruction"),
-                     p("To make BSseq Data for pairwise comparison, select the sample columns for each comparison, following the order 
-                       (1)N: Read coverage of the position from BS-seq data; 
-                       (2)X: Number of reads showing methylation of the position.",
-                       style="padding-left: 0em"),
-                     p("For example, comparison1 (Con_N, Con_X), comparison2 (Exp_N, Exp_X). 
-                       Corresponding name can be Con and  Exp. For more information, please refer to  ",
-                       a("DSS. ", href="https://bioconductor.org/packages/release/bioc/manuals/DSS/man/DSS.pdf"),
-                       style="padding-left: 0em"),
-                     
-                     
-                     tags$h4("Construct BSseqData"),
-                     fluidRow(
-                       
-                       column(3,
-                              selectInput(inputId = "dss_comp1",
-                                          label = "Select sample columns for comparison1",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(3,
-                              selectInput(inputId = "dss_comp2",
-                                          label = "Select sample columns for comparison2",
-                                          choices = NULL,
-                                          multiple = TRUE,
-                                          selected = NULL)),
-                       column(3,
-                              textInput(inputId = "dss_comp1_name",
-                                        label = "Enter sample name for comparison1",
-                                        value = "")),
-                       column(3,
-                              textInput(inputId = "dss_comp2_name",
-                                        label = "Enter sample name for comparison2",
-                                        value = ""))
-                     ),
-                     tags$h4("Set Parameters for DML test"),
-                     fluidRow(
-                       column(3,
-                              selectInput(inputId = "dss_wo_rep",
-                                          label = "Sample without replicates",
-                                          choices = c(TRUE,FALSE),
-                                          multiple = FALSE,
-                                          selected = TRUE)),
-                       column(3,
-                              selectInput(inputId = "dss_smoothing",
-                                          label = "Smoothing",
-                                          choices = c(TRUE,FALSE),
-                                          multiple = FALSE,
-                                          selected = TRUE)),
-                       column(3,
-                              textInput(inputId = "dss_smoothing_span",
-                                        label = "smoothing.span",
-                                        value = 500))
-                     ),
-                     tags$h4("Set threshold"),
-                     fluidRow(
-                       column(3,
-                              selectInput(inputId = "dss_pvalue",
-                                          label = "P value <",
-                                          choices = c(0.01, 0.05, 0.1, 0.25),
-                                          selected = 0.01)),
-                       column(3,
-                              selectInput(inputId = "dss_methyl_diff",
-                                          label = "Obs(diff methyl%) >=",
-                                          choices = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5),
-                                          selected = 0.1)),
-                       column(2,
-                              actionButton(inputId = "generate_dss",
-                                           label = "Generate result"))
-                     )
-                   ),
-                   wellPanel(
-                     tags$h3("Result of DML test"),
-                     DT::dataTableOutput(outputId = "dss_dml_tb")
-                   )
-                   
-                   
-                   )
-          )),
-
-## --------------- dna vs rna -----------------
-tabItem(tabName = "dna_vs_rna",
-        tabsetPanel(
-          tabPanel("DNA vs RNA")
-          # tabPanel()
-        )))))
-
-
-
-
-
-
+                    ## ---------------- rna seq analysis -----------------
+                    tabItem(tabName = "rna-seq_analysis",
+                            tabsetPanel(
+                              ## ------- read in data -------------
+                              tabPanel("Read In Data", 
+                                       wellPanel(
+                                         fluidRow(
+                                           column(4,
+                                                  textInput(inputId = "project_name",
+                                                            label = "Enter project name (no space) below:",
+                                                            value = "Enter project name"))),
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "rna_count",
+                                                            label = "Select Count Table File",
+                                                            accept = c(".csv")))),
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "rna_info",
+                                                            label = "Select Design File",
+                                                            accept = c(".csv"))))),
+                                       
+                                       
+                                       wellPanel(
+                                         tags$h4("View Count Table:"),
+                                         DT::dataTableOutput(outputId = 'display_rna_count')),
+                                       wellPanel(
+                                         tags$h4("View Sample Information Table:"),
+                                         DT::dataTableOutput(outputId = 'display_rna_info'))),
+                              
+                              
+                              ## ------- Exploratory Analysis ---------
+                              tabPanel("Exploratory Analysis", 
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         fluidRow(
+                                           column(2,
+                                                  selectInput(inputId = "gene_col_selected_expl",
+                                                              label = "Select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(5,
+                                                  selectInput(inputId = "sample_label_selected_expl",
+                                                              label = "Select samples (same order as in histogram and boxplot):",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "covariate_selected_expl",
+                                                              label = "Group by (select one):",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(2,
+                                                  actionButton(inputId = "generate_result_expl",
+                                                               label = "Generate Result"))
+                                         )),
+                                       wellPanel(
+                                         tags$h3("Count Histogram"),
+                                         plotlyOutput(outputId = "display_count_hist")),
+                                       
+                                       wellPanel(
+                                         tags$h3("Between-sample Distribution: Boxplot"),
+                                         fluidRow(
+                                           column(6,
+                                                  plotlyOutput(outputId = "display_boxplot")))),
+                                       wellPanel(
+                                         fluidRow(
+                                           column(6,
+                                                  wellPanel(
+                                                    tags$h3("Heatmap Sampel-to-sample Distance"),
+                                                    fluidRow(
+                                                      plotlyOutput(outputId = "display_heatmap_expl")
+                                                    ))),
+                                           column(6,
+                                                  wellPanel(
+                                                    tags$h3("PCA Plot"),
+                                                    fluidRow(plotlyOutput(outputId = "display_pca_expl"))))))
+                              ),
+                              
+                              
+                              ## ------------- DEGseq --------------
+                              tabPanel("DE Analysis: DEGseq",
+                                       # Data preparation
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         fluidRow(
+                                           column(2,
+                                                  selectInput(inputId = "gene_col_selected_degseq",
+                                                              label = "Select gene column",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(4,
+                                                  selectInput(inputId = "sample_label_selected_degseq",
+                                                              label = "Select 3 Samples in order: trt1 trt2 trt3",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(4,
+                                                  textInput(inputId = "row_sum",
+                                                            label = "Remove if sum across 3 samples is <",
+                                                            value = "10"))
+                                         ),
+                                         fluidRow(column(2,
+                                                         actionButton(inputId = "trim",
+                                                                      label = "Generate Count Table"))),
+                                         
+                                         fluidRow(
+                                           column(6,
+                                                  tags$h4("Trimmed Count Table Summary:"),
+                                                  verbatimTextOutput("trimmed_left"),
+                                                  verbatimTextOutput("display_trimmed_ct")))),
+                                       
+                                       ## DE analysis
+                                       wellPanel(
+                                         tags$h3("DE Analysis"),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "q_value",
+                                                              label = "q-value(Storey et al. 2003) <",
+                                                              choices = c(0.01, 0.05, 0.1, 0.25),
+                                                              selected = 0.01)),
+                                           column(3,
+                                                  selectInput(inputId = "fold_change",
+                                                              label = "Obs(log2(fold change)) >=",
+                                                              choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+                                                              selected = 1)),
+                                           column(3,
+                                                  actionButton(inputId = "run_DEGexp",
+                                                               label = "RUN DEGexp")),
+                                           column(3,
+                                                  downloadButton(outputId = "download_degseq",
+                                                                 label = "Download Results"))),
+                                         wellPanel(
+                                           tags$h4("trt2-trt1 Result Table:"),
+                                           DT::dataTableOutput(outputId = "result_table1_degseq")),
+                                         
+                                         wellPanel(
+                                           tags$h4("trt3-trt2 Result Table:"),
+                                           DT::dataTableOutput(outputId = "result_table2_degseq")),
+                                         
+                                         tags$h4("MA Plot:"),
+                                         fluidRow(
+                                           column(6,
+                                                  wellPanel(
+                                                    textInput(inputId = "ma1_title",
+                                                              label = "Enter trt2-trt1 MA plot title below:",
+                                                              value = ""),
+                                                    plotlyOutput(outputId = "ma1_degseq"))),
+                                           column(6,
+                                                  wellPanel(
+                                                    textInput(inputId = "ma2_title",
+                                                              label = "Enter trt3-trt2 MA plot title below:",
+                                                              value = ""),
+                                                    plotlyOutput(outputId = "ma2_degseq")))),
+                                         fluidRow(
+                                           column(6,
+                                                  verbatimTextOutput(outputId = "result_kable1")),
+                                           column(6,
+                                                  verbatimTextOutput(outputId = "result_kable2")))
+                                       ),
+                                       
+                                       # Changes in Gene Expression
+                                       wellPanel(
+                                         tags$h3("Changes in Gene Expression"),
+                                         fluidRow(
+                                           column(3,
+                                                  actionButton(inputId = "generate_result_change",
+                                                               label = "Generate Results")),
+                                           column(3,
+                                                  downloadButton(outputId = "download_cige",
+                                                                 label = "Download Results"))),
+                                         fluidRow(
+                                           column(8,
+                                                  tableOutput(outputId = "change_number"))),
+                                         fluidRow(
+                                           column(6,
+                                                  plotOutput(outputId = "display_venn_diagram1")),
+                                           column(6,
+                                                  plotOutput(outputId = "display_venn_diagram2"))),
+                                         fluidRow(column(12,
+                                                         tags$h4(" "))),
+                                         fluidRow(
+                                           column(6,
+                                                  plotOutput(outputId = "display_up.dn_dn.up_heatmap")),
+                                           column(6,
+                                                  wellPanel(DT::dataTableOutput(outputId = "display_up.dn_dn.up_table"))))
+                                       )),
+                              
+                              
+                              ## --------------- DEseq2 ----------------
+                              tabPanel("DE Analysis: DEseq2",
+                                       
+                                       # Data Preparation
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         fluidRow(
+                                           column(2,
+                                                  selectInput(inputId = "gene_col_selected_deseq2",
+                                                              label = "Select gene column",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(4,
+                                                  selectInput(inputId = "sample_label_selected_deseq2",
+                                                              label = "Select samples for DE analysis",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  textInput(inputId = "row_sum_deseq2",
+                                                            label = "Remove if total across samples is <",
+                                                            value = "10")),
+                                           column(2,
+                                                  selectInput(inputId = "covariate_selected_deseq2",
+                                                              label = "Select covariate(s)",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(3,
+                                                  radioButtons(inputId = "design_deseq2",
+                                                               label = "Select Design Formula:",
+                                                               choices = list("Simple Comparison" = "o_interaction",
+                                                                              "Combine Level" = "combine_level"
+                                                                              # "With Interaction" = "w_interaction", 
+                                                               ),
+                                                               selected = NULL)),
+                                           column(2,
+                                                  actionButton(inputId = "generate_dds_from_matrix",
+                                                               label = "Generate DESeqDataSet From Matrix"))),
+                                         fluidRow(
+                                           column(6,
+                                                  tags$h4("DESeqDataSet Summary:"),
+                                                  verbatimTextOutput(outputId = "trim_left_number"),
+                                                  verbatimTextOutput("display_formula"))),
+                                         fluidRow(
+                                           verbatimTextOutput("test1"),
+                                           verbatimTextOutput("test2")
+                                         )
+                                       ),
+                                       
+                                       # DE analysis
+                                       wellPanel(
+                                         tags$h3("DE Analysis"),
+                                         fluidRow(column(4,
+                                                         selectInput(inputId = "deseq2_p_value",
+                                                                     label = "FDR adjusted p-value <",
+                                                                     choices = c(0.01, 0.05, 0.1, 0.25),
+                                                                     selected = 0.01)),
+                                                  column(4,
+                                                         selectInput(inputId = "deseq2_fold_change",
+                                                                     label = "Obs(log2(fold change)) >=",
+                                                                     choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+                                                                     selected = 1)),
+                                                  column(3,
+                                                         actionButton(inputId = "run_deseq",
+                                                                      label = "Run DESeq"))),
+                                         fluidRow(column(4,
+                                                         selectInput(inputId = "comp1",
+                                                                     label = "Select numerator level for the fold change",
+                                                                     choices = NULL,
+                                                                     multiple = FALSE,
+                                                                     selected = NULL)),
+                                                  column(4,
+                                                         selectInput(inputId = "comp2",
+                                                                     label = "Select denominator leve for the fold changel",
+                                                                     choices = NULL,
+                                                                     multiple = FALSE,
+                                                                     selected = NULL)),
+                                                  column(2,
+                                                         actionButton(inputId = "extract_results_deseq2",
+                                                                      label = "Extract Results")),
+                                                  column(2,
+                                                         downloadButton(outputId = "download_deseq2",
+                                                                        label = "Download Results"))),
+                                         fluidRow(verbatimTextOutput(outputId = "deseq2_results_dir")),
+                                         
+                                         wellPanel(tags$h4("Result Table:"),
+                                                   DT::dataTableOutput(outputId = "display_dtf_res_contrast")),
+                                         wellPanel(tags$h4("MA Plot:"),
+                                                   fluidRow(column(3,
+                                                                   textInput(inputId = "enter_deseq2_ma_title",
+                                                                             label = "Enter MA plot title below:",
+                                                                             value = ""))),
+                                                   fluidRow(column(6,
+                                                                   plotOutput(outputId = "display_deseq2_ma")),
+                                                            column(6,
+                                                                   tableOutput(outputId = "deseq2_sign_number")))),
+                                         wellPanel(tags$h4("Plot Counts"),
+                                                   fluidRow(column(3,
+                                                                   textInput(inputId = "enter_gene_name",
+                                                                             label = "Enter one gene name:")),
+                                                            column(3,
+                                                                   selectInput(inputId = "intgroup",
+                                                                               label = "Select interested covariate(s) :",
+                                                                               choices = NULL,
+                                                                               multiple = TRUE,
+                                                                               selected = NULL)),
+                                                            column(2,
+                                                                   actionButton(inputId = "generate_count_plot",
+                                                                                label = "Generate Count Plot"))),
+                                                   fluidRow(column(6,
+                                                                   plotOutput(outputId = "deseq2_count_plot"))))
+                                       )
+                              )
+                            )
+                    ),
+                    
+                    ## ---------------- dna methylseq analysis ----------------
+                    tabItem(tabName = "dna-seq_analysis",
+                            tabsetPanel(
+                              ## ------------ annotation -----------
+                              tabPanel("Annotation",
+                                       wellPanel(tags$h3("Annotation"),
+                                                 shinyFilesButton(id = "dir_anno",
+                                                                  label = "Select Peak file",
+                                                                  title = "Please select a file",
+                                                                  multiple = FALSE,
+                                                                  class = c("csv")),
+                                                 tags$h4("File Directory"),
+                                                 verbatimTextOutput(outputId = "display_dir_anno"),
+                                                 fluidRow(column(2,
+                                                                 textInput(inputId = "tssreg_from",
+                                                                           label = "TSS range from",
+                                                                           value = -3000)),
+                                                          column(2,
+                                                                 textInput(inputId = "tssreg_to",
+                                                                           label = "TSS range to",
+                                                                           value = 3000)),
+                                                          column(2,
+                                                                 textInput(inputId = "txdb",
+                                                                           label = "TxDb object",
+                                                                           value = "TxDb.Mmusculus.UCSC.mm10.knownGene")),
+                                                          column(2,
+                                                                 textInput(inputId = "annodb",
+                                                                           label = "Annotation package",
+                                                                           value = "org.Mm.eg.db"))
+                                                 ),
+                                                 actionButton(inputId = "annotate",
+                                                              label = "Annotate")
+                                       )
+                              ),
+                              ## ----- exploratory analysis -----------
+                              tabPanel("Exploratory Analysis",
+                                       wellPanel(fluidRow(column(3,
+                                                                 selectInput(inputId = "dna_sample_cols1",
+                                                                             label = "Select sample columns for dtN",
+                                                                             choices = NULL,
+                                                                             multiple = TRUE,
+                                                                             selected = NULL)),
+                                                          column(4,
+                                                                 selectInput(inputId = "dna_sample_cols2",
+                                                                             label = "Select sample columns for dtX (same order as dtN)",
+                                                                             choices = NULL,
+                                                                             multiple = TRUE,
+                                                                             selected = NULL)),
+                                                          
+                                                          column(3,
+                                                                 textInput(inputId = "sample_name",
+                                                                           label = "Enter sample name in order, seperated by comma",
+                                                                           value = "")),
+                                                          column(2,
+                                                                 actionButton(inputId = "generate_expl_dna",
+                                                                              label = "Generate Results"))),
+                                                 verbatimTextOutput("test_dna")
+                                                 # verbatimTextOutput("test_dna1"),
+                                                 # verbatimTextOutput("test_dna2")
+                                       ),
+                                       
+                                       wellPanel(tags$h3("Annotation by Region (%)"),
+                                                 plotOutput(outputId = "anno_by_reg")),
+                                       wellPanel(tags$h3("CpG Histogram by Region"),
+                                                 plotOutput(outputId = "cpg_hist")),
+                                       wellPanel(tags$h3("Methyl% by region"),
+                                                 plotOutput(outputId = "meth_by_region")),
+                                       # heatmap
+                                       wellPanel(
+                                         tags$h3("Heatmap of Methyl% on Gene Level"),
+                                         
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "dna_heat_N",
+                                                              label = "Select sample columns for dtN",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "dna_heat_X",
+                                                              label = "Select sample columns for dtX",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  textInput(inputId = "dna_heat_sample_name",
+                                                            label = "Enter sample name in order, seperated by comma",
+                                                            value = ""))),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "dna_heat_reg",
+                                                              label = "Select one region of interest",
+                                                              choices = c("Promoter", "5' UTR", "Body", "3' UTR", "Downstream"),
+                                                              multiple = FALSE,
+                                                              selected = "Promoter")),
+                                           column(4,
+                                                  textInput(inputId = "dna_heat_top_n",
+                                                            label = "Display top n genes with largest positive and negative mythly% diff",
+                                                            value = "20")),
+                                           column(3,
+                                                  actionButton(inputId = "generate_dna_heat",
+                                                               label = "Generate Result"))),
+                                         fluidRow(
+                                           column(6,
+                                                  plotlyOutput(outputId = "dna_heat1")),
+                                           column(6,
+                                                  plotlyOutput(outputId = "dna_heat2"))
+                                         )
+                                         
+                                       )
+                              ),
+                              
+                              ## ------------ DSS ---------------
+                              tabPanel("DE Analysis: DSS",
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         tags$h4("Instruction"),
+                                         p("To make BSseq Data for pairwise comparison, select the sample columns for each comparison, following the order 
+                                           (1)N: Read coverage of the position from BS-seq data; 
+                                           (2)X: Number of reads showing methylation of the position.",
+                                           style="padding-left: 0em"),
+                                         p("For example, comparison1 (Con_N, Con_X), comparison2 (Exp_N, Exp_X). 
+                                           Corresponding name can be Con and  Exp. For more information, please refer to  ",
+                                           a("DSS. ", href="https://bioconductor.org/packages/release/bioc/manuals/DSS/man/DSS.pdf"),
+                                           style="padding-left: 0em"),
+                                         
+                                         
+                                         tags$h4("Construct BSseqData"),
+                                         fluidRow(
+                                           
+                                           column(3,
+                                                  selectInput(inputId = "dss_comp1",
+                                                              label = "Select sample columns for comparison1",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "dss_comp2",
+                                                              label = "Select sample columns for comparison2",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  textInput(inputId = "dss_comp1_name",
+                                                            label = "Enter sample name for comparison1",
+                                                            value = "")),
+                                           column(3,
+                                                  textInput(inputId = "dss_comp2_name",
+                                                            label = "Enter sample name for comparison2",
+                                                            value = ""))
+                                         ),
+                                         tags$h4("Set Parameters for DML test"),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "dss_wo_rep",
+                                                              label = "Sample without replicates",
+                                                              choices = c(TRUE,FALSE),
+                                                              multiple = FALSE,
+                                                              selected = TRUE)),
+                                           column(3,
+                                                  selectInput(inputId = "dss_smoothing",
+                                                              label = "Smoothing",
+                                                              choices = c(TRUE,FALSE),
+                                                              multiple = FALSE,
+                                                              selected = TRUE)),
+                                           column(3,
+                                                  textInput(inputId = "dss_smoothing_span",
+                                                            label = "smoothing.span",
+                                                            value = 500))
+                                         ),
+                                         tags$h4("Set threshold"),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "dss_pvalue",
+                                                              label = "P value <",
+                                                              choices = c(0.01, 0.05, 0.1, 0.25),
+                                                              selected = 0.01)),
+                                           column(3,
+                                                  selectInput(inputId = "dss_methyl_diff",
+                                                              label = "Obs(diff methyl%) >=",
+                                                              choices = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5),
+                                                              selected = 0.1)),
+                                           column(2,
+                                                  actionButton(inputId = "generate_dss",
+                                                               label = "Generate result"))
+                                         )
+                                       ),
+                                       wellPanel(
+                                         tags$h3("Result of DML test"),
+                                         DT::dataTableOutput(outputId = "dss_dml_tb")
+                                       )
+                                       
+                                       
+                                       )
+                              )),
+                    
+                    ## --------------- dna vs rna -----------------
+                    tabItem(tabName = "dna_vs_rna",
+                            tabsetPanel(
+                              tabPanel("DNA vs RNA")
+                              # tabPanel()
+                            )))))
 
 ## ------------- server -------------------
 server <- function(input, output, session) {
@@ -776,8 +781,6 @@ server <- function(input, output, session) {
                         " touch \"${SLURM_JOB_PARTITION}-${SLURM_JOB_NODELIST}-${SLURM_JOB_ID}-$(($duration / 3600 ))h_$(($(($duration % 3600)) / 60 ))m_$(($duration % 60))s.time\""
     )
     
-    
-    
     rv$pgmdna <- paste0("sbatch --job-name=",
                         input$job_name,
                         " --ntasks=",
@@ -826,8 +829,12 @@ server <- function(input, output, session) {
     
     cat(
       ifelse(input$is_rna == TRUE,
-             paste('RNA Program:',rv$pgmrna, sep = '\n'),
-             paste('DNA Program:', rv$pgmdna, sep = '\n'))
+             paste('RNA Program:',
+                   rv$pgmrna,
+                   sep = '\n'),
+             paste('DNA Program:',
+                   rv$pgmdna, 
+                   sep = '\n'))
     )
   })
   
@@ -836,17 +843,12 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
-  
-  
-  
-  
   ## ------------  RNA seq: Read in Data and update SelectInput -------------
   
   observeEvent(input$rna_count,{
     infile_rna_count <- input$rna_count
-    tb <- fread(infile_rna_count$datapath, skip = 1)
+    tb <- fread(infile_rna_count$datapath, 
+                skip = 1)
     tb <- as.data.frame(tb)
     rv$ct <- tb
     
@@ -855,10 +857,10 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
   })
   
-  
   observeEvent(input$rna_info,{
     infile_rna_info <- input$rna_info
-    tb <- fread(infile_rna_info$datapath, header = TRUE)
+    tb <- fread(infile_rna_info$datapath, 
+                header = TRUE)
     tb <- as.data.frame(tb)
     rv$info <- tb
     
@@ -911,10 +913,7 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
   ## ------------ Exploratory Analysis -------------
-  
   observeEvent(input$generate_result_expl,{
     
     withProgress(message = "Generating Result",
@@ -935,7 +934,10 @@ server <- function(input, output, session) {
                      
                    }else{
                      # selected design table
-                     selected_info <- rv$info[match(input$sample_label_selected_expl, rv$info$`Sample Label`), c("Sample Label", input$covariate_selected_expl)]
+                     selected_info <- rv$info[match(input$sample_label_selected_expl, 
+                                                    rv$info$`Sample Label`), 
+                                              c("Sample Label", 
+                                                input$covariate_selected_expl)]
                      colnames(selected_info) <- c("sample", "covariate")
                      # log transform
                      dt_log2 <- dt
@@ -1027,7 +1029,6 @@ server <- function(input, output, session) {
   })
   
   ## -------------  DEGseq  ----------------
-  
   ## Data Preparation
   observeEvent(input$trim,{
     if(length(input$sample_label_selected_degseq) != 3){
@@ -1069,7 +1070,8 @@ server <- function(input, output, session) {
                  value = 0,
                  expr = {
                    # run DEGexp
-                   incProgress(0.2, detail = "Processing trt2-trt1")
+                   incProgress(0.2, 
+                               detail = "Processing trt2-trt1")
                    outputDir <-  file.path(tempdir())
                    rv$ct_degseq_matrix <- as.matrix(rv$ct_degseq)
                    DEGexp(geneExpMatrix1 = rv$ct_degseq_matrix,
@@ -1116,12 +1118,16 @@ server <- function(input, output, session) {
                    # add mu clr and pch
                    incProgress(0.2, detail = "Displaying Result Tables")
                    
-                   rv$table_trt2_trt1 <- add.clm(rv$table_trt2_trt1, input$q_value, input$fold_change)
+                   rv$table_trt2_trt1 <- add.clm(rv$table_trt2_trt1, 
+                                                 input$q_value, 
+                                                 input$fold_change)
                    rv$table_trt2_trt1_round <- rv$table_trt2_trt1
                    rv$table_trt2_trt1_round[, c(4:9,11)] <- round(rv$table_trt2_trt1_round[, c(4:9,11)], 2)
                    
                    
-                   rv$table_trt3_trt2 <- add.clm(rv$table_trt3_trt2, input$q_value, input$fold_change)
+                   rv$table_trt3_trt2 <- add.clm(rv$table_trt3_trt2, 
+                                                 input$q_value, 
+                                                 input$fold_change)
                    rv$table_trt3_trt2_round <- rv$table_trt3_trt2
                    rv$table_trt3_trt2_round[, c(4:9,11)] <- round(rv$table_trt3_trt2_round[, c(4:9,11)], 2)
                    
@@ -1131,25 +1137,30 @@ server <- function(input, output, session) {
                      DT::datatable(rv$table_trt2_trt1_round,
                                    filter = "top",
                                    options = list(scrollX = TRUE,
-                                                  columnDefs = list(list(searchable = FALSE, targets = c(1:4,6:7,11:13)))))
+                                                  columnDefs = list(list(searchable = FALSE, 
+                                                                         targets = c(1:4,6:7,11:13)))))
                    })
                    
                    output$result_table2_degseq = DT::renderDataTable({
                      DT::datatable(rv$table_trt3_trt2_round,
                                    filter = "top",
                                    options = list(scrollX = TRUE,
-                                                  columnDefs = list(list(searchable = FALSE, targets = c(1:4,6:7,11:13)))))
+                                                  columnDefs = list(list(searchable = FALSE, 
+                                                                         targets = c(1:4,6:7,11:13)))))
                    })
                    
                    
                    # MA plot
                    incProgress(0.2, detail = "Generating MA plot")
                    
-                   rv$ma1_degseq <- ma(rv$table_trt2_trt1, input$q_value, input$fold_change) 
+                   rv$ma1_degseq <- ma(rv$table_trt2_trt1, input$q_value,
+                                       input$fold_change) 
                    p1 <- ggplotly(rv$ma1_degseq)
                    output$ma1_degseq <- renderPlotly({print(p1)})
                    
-                   rv$ma2_degseq <- ma(rv$table_trt3_trt2, input$q_value, input$fold_change)
+                   rv$ma2_degseq <- ma(rv$table_trt3_trt2, 
+                                       input$q_value,
+                                       input$fold_change)
                    p2 <- ggplotly(rv$ma2_degseq)
                    output$ma2_degseq <- renderPlotly({print(p2)})
                    
@@ -1195,10 +1206,17 @@ server <- function(input, output, session) {
                    expr = {
                      # run cige function and rename the up.dn.dn.up table
                      incProgress(0.2, detail = "Preparing data")
-                     ls <- cige(rv$table_trt2_trt1, rv$table_trt3_trt2, input$q_value, input$fold_change)
+                     ls <- cige(rv$table_trt2_trt1, 
+                                rv$table_trt3_trt2, 
+                                input$q_value,
+                                input$fold_change)
                      colnames(ls$up.dn_dn.up_table) <- c("gene",
-                                                         paste(input$sample_label_selected_degseq[2],"-",input$sample_label_selected_degseq[1]), 
-                                                         paste(input$sample_label_selected_degseq[3],"-",input$sample_label_selected_degseq[2]))
+                                                         paste(input$sample_label_selected_degseq[2],
+                                                               "-",
+                                                               input$sample_label_selected_degseq[1]), 
+                                                         paste(input$sample_label_selected_degseq[3],
+                                                               "-",
+                                                               input$sample_label_selected_degseq[2]))
                      
                      # venn diagram abd sig# table
                      incProgress(0.2, detail = "venn diagrams")
@@ -1207,26 +1225,48 @@ server <- function(input, output, session) {
                                                               area2 = length(ls$trt3_trt2_dn),
                                                               cross.area = length(ls$up.dn),
                                                               scaled = TRUE,
-                                                              col = c("green3", "firebrick"))
+                                                              col = c("green3", 
+                                                                      "firebrick"))
                      })
                      output$display_venn_diagram2 <- renderPlot({
                        rv$venn_diagram2 <- draw.pairwise.venn(area1 = length(ls$trt2_trt1_dn),
                                                               area2 = length(ls$trt3_trt2_up),
                                                               cross.area = length(ls$dn.up),
                                                               scaled = TRUE,
-                                                              col = c("firebrick", "green3"))
+                                                              col = c("firebrick",
+                                                                      "green3"))
                      })
                      
                      output$change_number <- renderTable({
-                       col1 <- c(paste0(input$sample_label_selected_degseq[2],"-",input$sample_label_selected_degseq[1]," up"),
-                                 paste0(input$sample_label_selected_degseq[2],"-",input$sample_label_selected_degseq[1]," down"))
+                       col1 <- c(paste0(input$sample_label_selected_degseq[2],
+                                        "-",
+                                        input$sample_label_selected_degseq[1],
+                                        " up"),
+                                 paste0(input$sample_label_selected_degseq[2],
+                                        "-",
+                                        input$sample_label_selected_degseq[1],
+                                        " down"))
                        col2 <- c(length(ls$trt2_trt1_up), length(ls$trt2_trt1_dn))
-                       col3 <- c(paste0(input$sample_label_selected_degseq[3],"-",input$sample_label_selected_degseq[2]," down"),
-                                 paste0(input$sample_label_selected_degseq[3],"-",input$sample_label_selected_degseq[2]," up"))
-                       col4 <- c(length(ls$trt3_trt2_dn), length(ls$trt3_trt2_up))
-                       col5 <- c("intersection", "intersection")
-                       col6 <- c(length(ls$up.dn),length(ls$dn.up))
-                       tb <- data.frame(col1,col2,col3,col4,col5, col6)
+                       col3 <- c(paste0(input$sample_label_selected_degseq[3],
+                                        "-",
+                                        input$sample_label_selected_degseq[2],
+                                        " down"),
+                                 paste0(input$sample_label_selected_degseq[3],
+                                        "-",
+                                        input$sample_label_selected_degseq[2],
+                                        " up"))
+                       col4 <- c(length(ls$trt3_trt2_dn),
+                                 length(ls$trt3_trt2_up))
+                       col5 <- c("intersection", 
+                                 "intersection")
+                       col6 <- c(length(ls$up.dn),
+                                 length(ls$dn.up))
+                       tb <- data.frame(col1,
+                                        col2,
+                                        col3,
+                                        col4,
+                                        col5, 
+                                        col6)
                        colnames(tb) <- NULL
                        return(tb)
                      })
@@ -1260,20 +1300,22 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  
-  
   ## ---------------- DEseq2 -----------------------
   observeEvent(input$generate_dds_from_matrix,{
-    rv$sample_name_list_deseq2 <- rv$info$`Sample Name`[match(input$sample_label_selected_deseq2, rv$info$`Sample Label`)]
+    rv$sample_name_list_deseq2 <- rv$info$`Sample Name`[match(input$sample_label_selected_deseq2, 
+                                                              rv$info$`Sample Label`)]
     rv$ct_deseq2 <- rv$ct[, rv$sample_name_list_deseq2]
     rv$ct_deseq2 <- as.matrix(rv$ct_deseq2)
     rownames(rv$ct_deseq2) <- rv$ct[, input$gene_col_selected_deseq2]
     colnames(rv$ct_deseq2) <- input$sample_label_selected_deseq2
     
     
-    rv$info_deseq2 <- rv$info[match(input$sample_label_selected_deseq2, rv$info$`Sample Label`), c("Sample Label", input$covariate_selected_deseq2)]
-    colnames(rv$info_deseq2) <- c("sample", input$covariate_selected_deseq2)
+    rv$info_deseq2 <- rv$info[match(input$sample_label_selected_deseq2,
+                                    rv$info$`Sample Label`), 
+                              c("Sample Label",
+                                input$covariate_selected_deseq2)]
+    colnames(rv$info_deseq2) <- c("sample", 
+                                  input$covariate_selected_deseq2)
     rv$info_deseq2[-1] <- lapply(rv$info_deseq2[-1], factor)
     
     updateSelectInput(session, 
@@ -1282,10 +1324,10 @@ server <- function(input, output, session) {
                       choices = colnames(rv$info_deseq2)[-1], 
                       selected = NULL)
     
-    
     if(length(input$covariate_selected_deseq2) == 1 &
        input$design_deseq2 == "o_interaction"){
-      rv$formula <- as.formula(paste("~",input$covariate_selected_deseq2))
+      rv$formula <- as.formula(paste("~",
+                                     input$covariate_selected_deseq2))
     }else if(length(input$covariate_selected_deseq2) > 1 &
              input$design_deseq2 == "combine_level"){
       rv$info_deseq2$group <- factor(apply(rv$info_deseq2[ , input$covariate_selected_deseq2],
@@ -1299,10 +1341,11 @@ server <- function(input, output, session) {
     
     output$display_formula <- renderPrint({
       cat(
-        paste0("The design formula: ", paste(as.character(rv$formula), collapse = " "))
+        paste0("The design formula: ", 
+               paste(as.character(rv$formula), 
+                     collapse = " "))
       )
     })
-    
     
     if(rv$formula == "incorrect"){
       showNotification("Incorrect design formula",
@@ -1332,11 +1375,7 @@ server <- function(input, output, session) {
         })
       } 
     }
-    
-    
   })
-  
-  
   
   observeEvent(input$run_deseq,{
     
@@ -1404,10 +1443,12 @@ server <- function(input, output, session) {
                      
                      rv$dtf_res_contrast$clr <- "black"
                      rv$dtf_res_contrast$clr[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value)] <- "purple"
-                     rv$dtf_res_contrast$clr[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change)] <- "red"
+                     rv$dtf_res_contrast$clr[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                               abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change)] <- "red"
                      rv$dtf_res_contrast$pch <- 46
                      rv$dtf_res_contrast$pch[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value)] <- 3
-                     rv$dtf_res_contrast$pch[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change)] <- 4
+                     rv$dtf_res_contrast$pch[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                               abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change)] <- 4
                      rv$dtf_res_contrast$pch <- factor(rv$dtf_res_contrast$pch,
                                                        levels = c(46, 3, 4))
                      
@@ -1418,7 +1459,8 @@ server <- function(input, output, session) {
                        DT::datatable(rv$dtf_res_contrast_round,
                                      filter = "top",
                                      options = list(scrollX = TRUE,
-                                                    columnDefs = list(list(searchable = FALSE, targets = c(1:2, 4:6, 8:9)))))
+                                                    columnDefs = list(list(searchable = FALSE, 
+                                                                           targets = c(1:2, 4:6, 8:9)))))
                      })
                      
                      # MA plot
@@ -1448,7 +1490,8 @@ server <- function(input, output, session) {
                                                            as.numeric(input$deseq2_p_value), 
                                                            " & abs(log2) >= ", 
                                                            as.numeric(input$deseq2_fold_change)))) +
-                       geom_hline(yintercept = c(-as.numeric(input$deseq2_fold_change), as.numeric(input$deseq2_fold_change)),
+                       geom_hline(yintercept = c(-as.numeric(input$deseq2_fold_change), 
+                                                 as.numeric(input$deseq2_fold_change)),
                                   lty = 2) +
                        theme(panel.grid.major = element_blank(),
                              panel.grid.minor = element_blank(),
@@ -1466,10 +1509,15 @@ server <- function(input, output, session) {
                      result <- c("up-regulated DEG",
                                  "non DEG",
                                  "down-regulated DEG")
-                     number <- c(
-                       sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & rv$dtf_res_contrast$log2FoldChange >= as.numeric(input$deseq2_fold_change), na.rm = TRUE),
-                       nrow(rv$dtf_res_contrast) - sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change), na.rm = TRUE),
-                       sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & rv$dtf_res_contrast$log2FoldChange <= - as.numeric(input$deseq2_fold_change), na.rm = TRUE))
+                     number <- c(sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                       rv$dtf_res_contrast$log2FoldChange >= as.numeric(input$deseq2_fold_change), 
+                                     na.rm = TRUE),
+                                 nrow(rv$dtf_res_contrast) - sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                                                   abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change),
+                                                                 na.rm = TRUE),
+                                 sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                       rv$dtf_res_contrast$log2FoldChange <= - as.numeric(input$deseq2_fold_change),
+                                     na.rm = TRUE))
                      deseq2_sign_number_tb <- data.frame(result, number)
                      output$deseq2_sign_number <- renderTable(deseq2_sign_number_tb)
                      
@@ -1488,10 +1536,6 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  
-  
-  
   ## generate count plot
   observeEvent(input$generate_count_plot,{
     if(is.null(input$enter_gene_name) | is.null(input$intgroup)){
@@ -1503,24 +1547,33 @@ server <- function(input, output, session) {
                        type = "error",
                        duration = 15)
     }else{
-      dt <- plotCounts(rv$dds_res, gene = input$enter_gene_name, intgroup = input$intgroup, returnData = TRUE)
+      dt <- plotCounts(rv$dds_res, gene = input$enter_gene_name,
+                       intgroup = input$intgroup, 
+                       returnData = TRUE)
       if(length(input$intgroup) > 1){
-        dt$group <- apply(dt[, -1], 1, paste, collapse= "_")
+        dt$group <- apply(dt[, -1], 
+                          1, 
+                          paste,
+                          collapse= "_")
       }
       
-      rv$count_plot <- ggplot(dt, aes(x=dt[,ncol(dt)], y=count)) +
-        geom_point(position=position_jitter(w=0.1,h=0)) +
-        labs(y = "normalized count", x = NULL)
+      rv$count_plot <- ggplot(dt,
+                              aes(x=dt[,ncol(dt)],
+                                  y=count)) +
+        geom_point(position=position_jitter(w = 0.1,
+                                            h = 0)) +
+        labs(y = "normalized count", 
+             x = NULL)
       output$deseq2_count_plot  <- renderPlot({print(rv$count_plot)})
     }
   })
   
-  
   ## ---------------- download results ----------------
-  
   output$download_expl <- downloadHandler(
     filename = function() {
-      paste("exploratory_results", ".zip", sep="")
+      paste("exploratory_results", 
+            ".zip", 
+            sep = "")
     },
     content = function(fname) {
       
@@ -1623,10 +1676,16 @@ server <- function(input, output, session) {
       file_path4 <- paste(input$project_name,
                           "degseq_trt3_trt2.csv",
                           sep = "")
-      write.csv(rv$table_trt3_trt2, file_path4, row.names = FALSE)
+      write.csv(rv$table_trt3_trt2, 
+                file_path4, 
+                row.names = FALSE)
       
-      fs <- c(file_path1, file_path2, file_path3, file_path4)
-      zip(zipfile=fname, files=fs)
+      fs <- c(file_path1,
+              file_path2, 
+              file_path3, 
+              file_path4)
+      zip(zipfile = fname, 
+          files = fs)
     },
     contentType = "application/zip"
   )
@@ -1634,7 +1693,9 @@ server <- function(input, output, session) {
   
   output$download_cige <- downloadHandler(
     filename = function() {
-      paste("cige_results", ".zip", sep="")
+      paste("cige_results", 
+            ".zip", 
+            sep = "")
     },
     content = function(fname) {
       
@@ -1642,7 +1703,9 @@ server <- function(input, output, session) {
                           "cige_sign_gene",
                           ".csv",
                           sep = "")
-      write.csv(rv$up.dn_dn.up_table, file_path1, row.names = FALSE)
+      write.csv(rv$up.dn_dn.up_table, 
+                file_path1, 
+                row.names = FALSE)
       
       
       file_path2 <- paste(input$project_name,
@@ -1682,8 +1745,12 @@ server <- function(input, output, session) {
       grid.draw(rv$venn_diagram2)
       dev.off()
       
-      fs <- c(file_path1, file_path2, file_path3, file_path4)
-      zip(zipfile=fname, files=fs)
+      fs <- c(file_path1, 
+              file_path2,
+              file_path3,
+              file_path4)
+      zip(zipfile = fname,
+          files = fs)
     },
     contentType = "application/zip"
   )
@@ -1691,7 +1758,9 @@ server <- function(input, output, session) {
   
   output$download_deseq2 <- downloadHandler(
     filename = function() {
-      paste("deseq2_results", ".zip", sep="")
+      paste("deseq2_results", 
+            ".zip", 
+            sep = "")
     },
     content = function(fname) {
       
@@ -1699,7 +1768,9 @@ server <- function(input, output, session) {
                           "_deseq2_result_table",
                           ".csv",
                           sep = "")
-      write.csv(rv$dtf_res_contrast, file_path1, row.names = FALSE)
+      write.csv(rv$dtf_res_contrast,
+                file_path1,
+                row.names = FALSE)
       
       
       file_path2 <- paste(input$project_name,
@@ -1714,9 +1785,6 @@ server <- function(input, output, session) {
            compression = "lzw+p")
       print(rv$deseq2_ma)
       dev.off()
-      
-      
-      
       
       if(!is.null(rv$count_plot)){
         file_path4 <- paste(input$project_name,
@@ -1734,21 +1802,22 @@ server <- function(input, output, session) {
         file_path4 <- NULL
       }
       
-      fs <- c(file_path1, file_path2, file_path4)
-      zip(zipfile=fname, files=fs)
+      fs <- c(file_path1, 
+              file_path2,
+              file_path4)
+      zip(zipfile = fname,
+          files = fs)
     },
     contentType = "application/zip"
   )
-  
   # end  
-  
   
   ## --------- DNA Annotate and update selectinput------------
   shinyFileChoose(input = input, 
                   id = "dir_anno", 
                   roots = volumes,
                   session = session,
-                  filetypes=c('csv'))
+                  filetypes = c('csv'))
   
   output$display_dir_anno <- renderPrint({
     parseFilePaths(
@@ -1763,7 +1832,8 @@ server <- function(input, output, session) {
                             expr = {
                               incProgress(0.7, detail = "Processing 70%")
                               rv$peakAnno1 <- annotatePeak(peak = parseFilePaths(roots = volumes,selection = input$dir_anno)$datapath, 
-                                                           tssRegion = c(as.numeric(input$tssreg_from), as.numeric(input$tssreg_to)), 
+                                                           tssRegion = c(as.numeric(input$tssreg_from), 
+                                                                         as.numeric(input$tssreg_to)), 
                                                            TxDb = eval(parse(text = input$txdb)),
                                                            annoDb = input$annodb)
                               
@@ -1806,7 +1876,6 @@ server <- function(input, output, session) {
                               incProgress(0.3, detail = "Processing 100%")
                             })
   )
-  
   
   ## -------------- Explotary analysis ------------------------
   observeEvent(input$generate_expl_dna,{
@@ -1919,24 +1988,21 @@ server <- function(input, output, session) {
                      a[is.na(a)] <- a[a == 0] <- 0.5
                      return(a)
                    })
-      
       pct <- dtX/dtN
-      
-      
       
       dt.pct <- data.table(rv$dt_dna2$reg,
                            pct)
       
-      colnames(dt.pct) <- c("reg", unlist(strsplit(input$sample_name, ",")))
+      colnames(dt.pct) <- c("reg",
+                            unlist(strsplit(input$sample_name, ",")))
       
-      dt.pct.mean <- aggregate( . ~ reg, dt.pct, mean)
+      dt.pct.mean <- aggregate( . ~ reg,
+                                dt.pct, mean)
       
       dt.pct.long <- melt(dt.pct.mean,
                           id.vars = "reg",
                           variable.name = "trt",
                           value.name = "Methylation (%)")
-      
-      
       
       output$test_dna1 <- renderPrint(dt.pct.long)
       output$test_dna2 <- renderPrint(dt.pct.mean)
@@ -2002,7 +2068,8 @@ server <- function(input, output, session) {
     # filter reg
     pct <- pct[pct$reg == input$dna_heat_reg, ]
     pct$diff_trt2_trt1 <- pct[, 2] - pct[, 1] 
-    pct_sort <- pct[order(pct$diff_trt2_trt1, decreasing = TRUE) , ]  # trt1,trt2,trt3,gene,diff
+    pct_sort <- pct[order(pct$diff_trt2_trt1, 
+                          decreasing = TRUE) , ]  # trt1,trt2,trt3,gene,diff
     pct_sort$diff_trt2_trt1 <- NULL # trt1,trt2,trt3,gene,reg
     pct_sort$reg <- NULL
     
@@ -2075,12 +2142,6 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
-  
-  
-  
-  
   ## ------- DSS -------------
   observeEvent(input$generate_dss, {
     
@@ -2108,7 +2169,12 @@ server <- function(input, output, session) {
     # perform DML test, differntially methylated loci (DML) for two group comparisons of bisulfite sequencing (BS-seq)
     # without replicates, must set equal.disp=T
     
-    dml <- DMLtest(bsdata, group1= name1, group2= name2,equal.disp=T, smoothing = TRUE, smoothing.span = 500)
+    dml <- DMLtest(bsdata, 
+                   group1 = name1,
+                   group2 = name2,
+                   equal.disp = TRUE,
+                   smoothing = TRUE, 
+                   smoothing.span = 500)
     
     output$dss_dml_tb <- DT::renderDataTable({
       DT::datatable(dml,
