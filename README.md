@@ -10,7 +10,7 @@
 
 ## File Legend<a name="files"></a>
 ### Scripts
-**app_v6.R**: latest rna and dna pipeline
+**app.R**: latest RNA and DNA pipeline
 
 ## Daily Logs<a name="logs"></a>
 ### 01/30/2019

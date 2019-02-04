@@ -696,9 +696,13 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                               label = "Obs(diff methyl%) >=",
                                                               choices = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5),
                                                               selected = 0.1)),
+                                           # column(3,
+                                           #        downloadButton(outputId = "download_dss",
+                                           #                       label = "Download Results")),
                                            column(2,
                                                   actionButton(inputId = "generate_dss",
-                                                               label = "Generate result"))
+                                                               label = "Generate result and download"))
+
                                          )
                                        ),
                                        wellPanel(
@@ -2143,8 +2147,7 @@ server <- function(input, output, session) {
   })
   
   ## ------- DSS -------------
-  observeEvent(input$generate_dss, {
-    
+  fdtdss <- reactive({
     dt <- data.frame(start = rv$peakAnno1@anno@ranges@start,
                      as.data.frame(rv$peakAnno1@anno@elementMetadata@listData))
     dt <- dt[!is.na(dt$SYMBOL == "NA"), ]
@@ -2175,12 +2178,39 @@ server <- function(input, output, session) {
                    equal.disp = TRUE,
                    smoothing = TRUE, 
                    smoothing.span = 500)
+    dml
+  })
+  
+  observeEvent(input$generate_dss, {
+    dml <- fdtdss()
+
+    write.csv(dml,
+              file = paste("dss_",
+                           Sys.Date(),
+                           ".csv",
+                           sep = ""),
+              row.names = FALSE)
     
     output$dss_dml_tb <- DT::renderDataTable({
-      DT::datatable(dml,
+      datatable(dml,
                     options = list(scrollX = TRUE))})
   })
   
+  # # This should work but doesn't
+  # # Source: https://yihui.shinyapps.io/DT-info/
+  # output$download_dss <- downloadHandler(
+  #   filename = function() {
+  #     paste("dss_",
+  #           Sys.Date(),
+  #           ".csv",
+  #           sep = "")
+  #   },
+  #   content = function(file) {
+  #     dml <- input$dss_dml_tb_rows_all
+  #     write.csv(dml,
+  #               file = file,
+  #               row.names = FALSE)
+  #   })
 }
 
 shinyApp(ui, server)
