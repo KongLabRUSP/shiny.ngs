@@ -259,7 +259,10 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(2,
                                                   actionButton(inputId = "generate_result_expl",
-                                                               label = "Generate Result"))
+                                                               label = "Generate Result")),
+                                           column(2,
+                                                  downloadButton(outputId = "download_expl",
+                                                                 label = "Download Results"))
                                          )),
                                        wellPanel(
                                          tags$h3("Count Histogram"),
@@ -1035,7 +1038,7 @@ server <- function(input, output, session) {
   ## -------------  DEGseq  ----------------
   ## Data Preparation
   observeEvent(input$trim,{
-    if(length(input$sample_label_selected_degseq) != 3){
+    if (length(input$sample_label_selected_degseq) != 3) {
       showNotification("Please select three samples in order",
                        type = "error",
                        duration = 15)
@@ -1046,7 +1049,7 @@ server <- function(input, output, session) {
                       input$sample_label_selected_degseq, 
                       input$gene_col_selected_degseq), 
         silent = T)
-      if(class(dt) == "try-error"){
+      if (class(dt) == "try-error") {
         showNotification(dt[1],
                          type = "error",
                          duration = 15)
@@ -1204,7 +1207,7 @@ server <- function(input, output, session) {
   
   ## Change in Gene Expression
   observeEvent(input$generate_result_change,{
-    if(!is.null(rv$table_trt2_trt1)){
+    if (!is.null(rv$table_trt2_trt1)) { 
       withProgress(message = "Generating results",
                    value = 0,
                    expr = {
@@ -1216,10 +1219,10 @@ server <- function(input, output, session) {
                                 input$fold_change)
                      colnames(ls$up.dn_dn.up_table) <- c("gene",
                                                          paste(input$sample_label_selected_degseq[2],
-                                                               "-",
+                                                               " vs ",
                                                                input$sample_label_selected_degseq[1]), 
                                                          paste(input$sample_label_selected_degseq[3],
-                                                               "-",
+                                                               " vs ",
                                                                input$sample_label_selected_degseq[2]))
                      
                      # venn diagram abd sig# table
@@ -1243,11 +1246,11 @@ server <- function(input, output, session) {
                      
                      output$change_number <- renderTable({
                        col1 <- c(paste0(input$sample_label_selected_degseq[2],
-                                        "-",
+                                        " vs ",
                                         input$sample_label_selected_degseq[1],
                                         " up"),
                                  paste0(input$sample_label_selected_degseq[2],
-                                        "-",
+                                        " vs ",
                                         input$sample_label_selected_degseq[1],
                                         " down"))
                        col2 <- c(length(ls$trt2_trt1_up), length(ls$trt2_trt1_dn))
