@@ -269,6 +269,9 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          plotlyOutput(outputId = "display_count_hist")),
                                        
                                        wellPanel(
+                                         plotOutput(outputId = "expl_tst")),
+                                       
+                                       wellPanel(
                                          tags$h3("Between-sample Distribution: Boxplot"),
                                          fluidRow(
                                            column(6,
@@ -984,9 +987,19 @@ server <- function(input, output, session) {
                      # heatmap s2s
                      tmp <- dt_log2[, -1]
                      sample_dist <- as.matrix(dist(t(as.matrix(tmp))))
+                     
+                     rv$expl_heatmap <- pheatmap(sample_dist,
+                                                 col = colorRampPalette( rev(brewer.pal(9, "Blues")) )(255))
+                     
+                     output$expl_tst <- renderPlot({
+                       print(rv$expl_heatmap)
+                     })
+                     
                      p3 <- plot_ly(
-                       x = colnames(sample_dist), y = rownames(sample_dist),
-                       z = sample_dist, type = "heatmap")
+                       x = colnames(sample_dist), 
+                       y = rownames(sample_dist),
+                       z = sample_dist, 
+                       type = "heatmap")
                      
                      output$display_heatmap_expl <- renderPlotly({print(p3)})
                      
@@ -1633,7 +1646,7 @@ server <- function(input, output, session) {
            units = 'in',
            res = 300,
            compression = "lzw+p")
-      print(rv$heatmap)
+      print(rv$expl_heatmap)
       dev.off()
       
       fs <- c(file_path1, file_path2, file_path3, file_path4)
