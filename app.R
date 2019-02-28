@@ -55,17 +55,21 @@ library(shinythemes)
 library(shinyFiles)
 library(shinyWidgets)
 
-library(ggplot2)
-library(plotly)
-library(stringr)
-library(readxl)
+
+
 library(data.table)
-library(MASS)
-library(knitr)
+library(dplyr)
 library(ggdendro)
-library(VennDiagram)
-library(RColorBrewer)
+library(ggplot2)
+library(knitr)
+library(MASS)
 library(pheatmap)
+library(plotly)
+library(RColorBrewer)
+library(readxl)
+library(stringr)
+library(tibble)
+library(VennDiagram)
 library(zip)
 
 library(BiocInstaller)
@@ -723,13 +727,97 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                     ## --------------- dna vs rna -----------------
                     tabItem(tabName = "dna_vs_rna",
                             tabsetPanel(
-                              tabPanel("DNA vs RNA")
-                              # tabPanel()
+                              tabPanel("Read In data",
+                                       wellPanel(
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "rna_sig",
+                                                            label = "Select RNA File of Significant Genes",
+                                                            accept = c(".csv")))),
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "dna_sig",
+                                                            label = "Select DNA File of Significant Genes",
+                                                            accept = c(".csv"))))),
+                                       wellPanel(
+                                         tags$h4("View RNA Table:"),
+                                         DT::dataTableOutput(outputId = 'display_rna_sig')),
+                                       wellPanel(
+                                         tags$h4("View DNA Table:"),
+                                         DT::dataTableOutput(outputId = 'display_dna_sig'))),
+                              tabPanel("Plot Data",
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "rna_gene_col_selected_rna_vs_dna",
+                                                              label = "From RNA table select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "logfoldchange_col_selected_rna_vs_dna",
+                                                              label = "Select RNA expression difference column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "dna_gene_col_selected_rna_vs_dna",
+                                                              label = "From DNA table select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "methyl_diff_col_selected_rna_vs_dna",
+                                                              label = "Select DNA methylation ratio difference column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           
+                                           column(3,
+                                                  selectInput(inputId = "region_col_selected_rna_vs_dna",
+                                                              label = "Select region column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(2,
+                                                  actionButton(inputId = "inner_join_rna_vs_dna",
+                                                               label = "Inner Join RNA and DNA table"))),
+                                         fluidRow(
+                                           column(3,
+                                                  textInput(inputId = "region_name_contian_rna_vs_dna",
+                                                            label = "(Optional) Rename region that contain:")),
+                                           column(3,
+                                                  textInput(inputId = "region_new_name_rna_vs_dna",
+                                                            label = "As:")),
+                                           column(2,
+                                                  actionButton(inputId = "rename_region_rna_vs_dna",
+                                                               label = "Apply"))
+                                         ),
+                                         fluidRow(
+                                           column(6,
+                                                  tags$h4("Inner Joined Table Summary:"),
+                                                  verbatimTextOutput("display_summary_inner_joined_rna_dna")))
+                                         
+                                         
+                                       ),
+                                       wellPanel(
+                                         tags$h3("Starburst Plot"),
+                                         fluidRow(
+                                           column(2,
+                                                  actionButton(inputId = "generate_starburst_plot_rna_vs_dna",
+                                                               label = "Generate Starburst Plot")),
+                                           column(2,
+                                                  downloadButton(outputId = "download_starburst_plot_rna_vs_dna",
+                                                                 label = "Download Plot")))
+                                       )
+                                       )
                             )))))
 
 ## ------------- server -------------------
 server <- function(input, output, session) {
-  ##  ------------ upstream ---------------------
+  ## ------------- upstream ---------------------
   # Specify folder containing FastQ file.
   # NOTE: all the files in the folder will be passed to the pipeline
   rv <- reactiveValues()
@@ -853,7 +941,7 @@ server <- function(input, output, session) {
     
   })
   
-  ## ------------  RNA seq: Read in Data and update SelectInput -------------
+  ## ------------  RNA seq: Read in data and update SelectInput -------------
   
   observeEvent(input$rna_count,{
     infile_rna_count <- input$rna_count
@@ -923,7 +1011,7 @@ server <- function(input, output, session) {
     
   })
   
-  ## ------------ Exploratory Analysis -------------
+  ## ---------------------- Exploratory Analysis -------------
   observeEvent(input$generate_result_expl,{
     
     withProgress(message = "Generating Result",
@@ -937,7 +1025,7 @@ server <- function(input, output, session) {
                                    input$sample_label_selected_expl, 
                                    input$gene_col_selected_expl), 
                      silent = T)
-                   if(class(dt) == "try-error"){
+                   if (class(dt) == "try-error") {
                      showNotification(dt[1],
                                       type = "error",
                                       duration = 15)
@@ -951,7 +1039,7 @@ server <- function(input, output, session) {
                      colnames(selected_info) <- c("sample", "covariate")
                      # log transform
                      dt_log2 <- dt
-                     dt_log2[, 2:ncol(dt_log2)] <- log2(dt_log2[, 2:ncol(dt_log2)] +1)
+                     dt_log2[, 2:ncol(dt_log2)] <- log2(dt_log2[, 2:ncol(dt_log2)] + 1)
                      dt_log2_long <- melt(dt_log2,
                                           id.vars = 1,
                                           measure.vars = 2:ncol(dt_log2),
@@ -1048,7 +1136,7 @@ server <- function(input, output, session) {
     
   })
   
-  ## -------------  DEGseq  ----------------
+  ## ---------------------- DEGseq  ----------------
   ## Data Preparation
   observeEvent(input$trim,{
     if (length(input$sample_label_selected_degseq) != 3) {
@@ -1320,7 +1408,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## ---------------- DEseq2 -----------------------
+  ## ---------------------- DEseq2 -----------------------
   observeEvent(input$generate_dds_from_matrix,{
     rv$sample_name_list_deseq2 <- rv$info$`Sample Name`[match(input$sample_label_selected_deseq2, 
                                                               rv$info$`Sample Label`)]
@@ -1444,15 +1532,15 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$extract_results_deseq2,{
-    if(!is.null(rv$dds_res)){
+    if (!is.null(rv$dds_res)) {
       withProgress(message = "Extracting results with contrast", 
                    value = 0,
                    expr = {
                      # extract result
                      incProgress(0.2, detail = "Preparing result table")
-                     if(input$design_deseq2 == "o_interaction"){
+                     if (input$design_deseq2 == "o_interaction") {
                        contrast <- c(input$covariate_selected_deseq2, input$comp1, input$comp2)
-                     }else if(input$design_deseq2 == "combine_level"){
+                     }else if (input$design_deseq2 == "combine_level") {
                        contrast <- c("group", input$comp1, input$comp2)
                      }
                      rv$dds_res_contrast <- results(rv$dds_res,
@@ -1588,7 +1676,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## ---------------- download results ----------------
+  ## ---------------------- Download results ----------------
   output$download_expl <- downloadHandler(
     filename = function() {
       paste("exploratory_results", 
@@ -1832,7 +1920,7 @@ server <- function(input, output, session) {
   )
   # end  
   
-  ## --------- DNA Annotate and update selectinput------------
+  ## ------------  DNA mettyl: Annotate and update selectinput------------
   shinyFileChoose(input = input, 
                   id = "dir_anno", 
                   roots = volumes,
@@ -1897,7 +1985,7 @@ server <- function(input, output, session) {
                             })
   )
   
-  ## -------------- Explotary analysis ------------------------
+  ## ----------------------- Explotary analysis ------------------------
   observeEvent(input$generate_expl_dna,{
     
     # anno by reg (not related to samples)
@@ -1988,7 +2076,7 @@ server <- function(input, output, session) {
                                       seq(from = 5,
                                           to = 60,
                                           by = 5))) +
-        coord_cartesian(xlim=c(3, 60)) +
+        coord_cartesian(xlim = c(3, 60)) +
         scale_y_continuous(name = "Counts") +
         ggtitle("Distribution of DMR by Number of CpG and Region")
       
@@ -2047,7 +2135,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## ----------- heatmap of methyl% on gene level ---------
+  ## ----------------------- Heatmap of methyl% on gene level ---------
   observeEvent(input$generate_dna_heat, {
     dt <- rv$dt_dna[!is.na(rv$dt_dna$SYMBOL == "NA"), ]
     
@@ -2162,7 +2250,7 @@ server <- function(input, output, session) {
     
   })
   
-  ## ------- DSS -------------
+  ## ----------------------- DSS -------------
   fdtdss <- reactive({
     dt <- data.frame(start = rv$peakAnno1@anno@ranges@start,
                      as.data.frame(rv$peakAnno1@anno@elementMetadata@listData))
@@ -2227,6 +2315,101 @@ server <- function(input, output, session) {
   #               file = file,
   #               row.names = FALSE)
   #   })
+  
+  ## -------------  RNA vs DNA: Read in data and update SelectInput ------------
+  
+  observeEvent(input$rna_sig,{
+    infile_rna_sig <- input$rna_sig
+    tb <- read.table(infile_rna_sig$datapath,
+                     sep = ",",
+                     header = T,
+                     quote = "\"")
+    rv$tb_rna_sig <- as_tibble(tb)
+    output$display_rna_sig = DT::renderDataTable({
+      DT::datatable(rv$tb_rna_sig,
+                    options = list(scrollX = TRUE))})
+    updateSelectInput(session,
+                      inputId = "rna_gene_col_selected_rna_vs_dna",
+                      label = "From RNA table select gene column:",
+                      choices = colnames(rv$tb_rna_sig),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "logfoldchange_col_selected_rna_vs_dna",
+                      label = "Select RNA expression difference column:",
+                      choices = colnames(rv$tb_rna_sig),
+                      selected = NULL)})
+  
+  observeEvent(input$dna_sig,{
+    infile_dna_sig <- input$dna_sig
+    tb <- read.table(infile_dna_sig$datapath,
+                     sep = ",",
+                     header = T,
+                     quote = "\"")
+    rv$tb_dna_sig <- as_tibble(tb)
+    output$display_dna_sig = DT::renderDataTable({
+      DT::datatable(rv$tb_dna_sig,
+                    options = list(scrollX = TRUE))})
+    updateSelectInput(session,
+                      inputId = "dna_gene_col_selected_rna_vs_dna",
+                      label = "From DNA table select gene column:",
+                      choices = colnames(rv$tb_dna_sig),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "methyl_diff_col_selected_rna_vs_dna",
+                      label = "Select DNA methylation ratio difference column:",
+                      choices = colnames(rv$tb_dna_sig),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "region_col_selected_rna_vs_dna",
+                      label = "Select region column:",
+                      choices = colnames(rv$tb_dna_sig),
+                      selected = NULL)})
+  
+  observeEvent(input$inner_join_rna_vs_dna,{
+    rna_sig <- rv$tb_rna_sig %>%
+      select(input$rna_gene_col_selected_rna_vs_dna,
+             input$logfoldchange_col_selected_rna_vs_dna) %>%
+      rename("gene" = input$rna_gene_col_selected_rna_vs_dna,
+             "log_foldchange" = input$logfoldchange_col_selected_rna_vs_dna)
+    
+    dna_sig <- rv$tb_dna_sig  %>%
+      select(input$dna_gene_col_selected_rna_vs_dna,
+             input$methyl_diff_col_selected_rna_vs_dna,
+             input$region_col_selected_rna_vs_dna)  %>%
+      rename("gene" = input$dna_gene_col_selected_rna_vs_dna,
+             "methyl_diff" = input$methyl_diff_col_selected_rna_vs_dna,
+             "region" = input$region_col_selected_rna_vs_dna)
+    
+    rv$joined_rna_dna <- try(
+      inner_join(rna_sig, dna_sig, by = "gene"),
+      silent = T)
+    if (class(rv$joined_rna_dna) == "try-error") {
+      showNotification("Please choose the correct columns and try again",
+                       type = "error",
+                       duration = 15)
+
+    }else{
+      output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
+    }
+    
+    observeEvent(input$rename_region_rna_vs_dna,{
+      rv$joined_rna_dna <- rv$joined_rna_dna %>%
+        mutate(region = replace(region, 
+                                str_detect(input$region_name_contian_rna_vs_dna,
+                                           input$region_new_name_rna_vs_dna),
+                                input$region_new_name_rna_vs_dna))
+     
+    })
+   
+
+
+
+    
+    
+    
+    
+    
+    })
 }
 
 shinyApp(ui, server)
