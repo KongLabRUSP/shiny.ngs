@@ -4,27 +4,29 @@
 ## Below installation check is only for local installation
 # # 1. CRAN packages----
 # packages <- c("shinydashboard",
-#               "DT",
-#               "shiny",
-#               "shinythemes",
-#               "shinyFiles",
-#               "shinyWidgets",
-#               "packrat",
-#               "ggplot2",
-#               "stringr",
-#               "readxl",
 #               "data.table",
-#               "MASS",
-#               "knitr",
-#               "ggdendro",
-#               "VennDiagram",
-#               "RColorBrewer",
-#               "pheatmap",
-#               "zip",
-#               "plotly",
+#               "dplyr",
+#               "DT",
 #               "farver",
+#               "fgsea",
+#               "ggdendro",
+#               "ggplot2",
+#               "knitr",
+#               "MASS",
+#               "packrat",
+#               "pheatmap",
+#               "plotly",
+#               "RColorBrewer",
+#               "readxl",
+#               "shiny",
+#               "shinyFiles",
+#               "shinythemes",
+#               "shinyWidgets",
+#               "stringr",
+#               "tibble",
 #               "units",
-#               "fgsea")
+#               "VennDiagram",
+#               "zip")
 # if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
 #   install.packages(setdiff(packages, rownames(installed.packages())))
 # }
@@ -45,7 +47,7 @@
 # BiocManager::install("org.Mm.eg.db", version = "3.8")
 
 options(stringsAsFactors = FALSE)
-options(shiny.maxRequestSize=30*1024^2) 
+options(shiny.maxRequestSize = 30*1024^2) 
 options(repos = BiocInstaller::biocinstallRepos())
 
 library(shinydashboard)
@@ -58,7 +60,6 @@ library(shinyWidgets)
 
 
 library(data.table)
-library(dplyr)
 library(ggdendro)
 library(ggplot2)
 library(knitr)
@@ -79,6 +80,9 @@ library(BiocParallel)
 library(ChIPseeker)
 library(TxDb.Mmusculus.UCSC.mm10.knownGene)
 library(DSS)
+
+# load dplyr last to avoid "select" being masked from biomaRt or plotly
+library(dplyr)
 
 # Determine the OS
 sysOS <- Sys.info()[['sysname']]
@@ -806,11 +810,24 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          tags$h3("Starburst Plot"),
                                          fluidRow(
                                            column(2,
+                                                  numericInput(inputId = "starburst_rna_hline",
+                                                               label = "Enter RNA expression diff threshold",
+                                                               value = 0.1)),
+                                           column(2,
+                                                  numericInput(inputId = "starburst_dna_vline",
+                                                               label = "Enter DNA methylation % diff threshold",
+                                                               value = 10)),
+                                           column(2,
                                                   actionButton(inputId = "generate_starburst_plot_rna_vs_dna",
                                                                label = "Generate Starburst Plot")),
                                            column(2,
                                                   downloadButton(outputId = "download_starburst_plot_rna_vs_dna",
-                                                                 label = "Download Plot")))
+                                                                 label = "Download Plot"))),
+                                         fluidRow(
+                                           column(12,
+                                                  plotlyOutput(outputId = "starburst_plot")
+                                                  )
+                                         )
                                        )
                                        )
                             )))))
@@ -2370,14 +2387,14 @@ server <- function(input, output, session) {
       select(input$rna_gene_col_selected_rna_vs_dna,
              input$logfoldchange_col_selected_rna_vs_dna) %>%
       rename("gene" = input$rna_gene_col_selected_rna_vs_dna,
-             "log_foldchange" = input$logfoldchange_col_selected_rna_vs_dna)
+             "RNA_exp_diff" = input$logfoldchange_col_selected_rna_vs_dna)
     
     dna_sig <- rv$tb_dna_sig  %>%
       select(input$dna_gene_col_selected_rna_vs_dna,
              input$methyl_diff_col_selected_rna_vs_dna,
              input$region_col_selected_rna_vs_dna)  %>%
       rename("gene" = input$dna_gene_col_selected_rna_vs_dna,
-             "methyl_diff" = input$methyl_diff_col_selected_rna_vs_dna,
+             "DNA_methyl_diff" = input$methyl_diff_col_selected_rna_vs_dna,
              "region" = input$region_col_selected_rna_vs_dna)
     
     rv$joined_rna_dna <- try(
@@ -2392,24 +2409,32 @@ server <- function(input, output, session) {
       output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
     }
     
-    observeEvent(input$rename_region_rna_vs_dna,{
-      rv$joined_rna_dna <- rv$joined_rna_dna %>%
-        mutate(region = replace(region, 
-                                str_detect(input$region_name_contian_rna_vs_dna,
-                                           input$region_new_name_rna_vs_dna),
-                                input$region_new_name_rna_vs_dna))
-     
     })
-   
-
-
-
-    
-    
-    
-    
-    
-    })
+  
+  
+  # observeEvent(input$rename_region_rna_vs_dna,{
+  #   rv$joined_rna_dna <- rv$joined_rna_dna %>%
+  #     mutate(region = replace(region, 
+  #                             str_detect(input$region_name_contian_rna_vs_dna,
+  #                                        input$region_new_name_rna_vs_dna),
+  #                             input$region_new_name_rna_vs_dna))
+  #   
+  # })
+  observeEvent(input$generate_starburst_plot_rna_vs_dna,{
+    rv$starburst_plot <- starburst(rv$joined_rna_dna,
+                                   gene,
+                                   RNA_exp_diff,
+                                   DNA_methyl_diff,
+                                   region,
+                                   input$starburst_rna_hline,
+                                   input$starburst_dna_vline)
+    p1 <- ggplotly(rv$starburst_plot,
+                   tooltip = c("text", "x", "y"))
+    output$starburst_plot <- renderPlotly({print(p1)})
+  })
+  
+  
+  
 }
 
 shinyApp(ui, server)

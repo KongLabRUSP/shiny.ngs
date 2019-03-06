@@ -1,3 +1,4 @@
+# ma plot
 # input: a data table returned by function add.clm(), q_value, fold_change
 # output: a MA plot, ggplot object
 
@@ -96,3 +97,39 @@ two.cl.heat <- function(up.dn_dn.up_table){
   return(two_circle_heatmap)
   
 }
+
+
+# starburst plot
+# input: a dataframe or tibble, colname of RNA exp diff, colname of DNA methyl ratio diff (decimal not %), absolute threshhold of RNA diff, absolute threshhold of DNA diff %
+starburst <- function(df,
+                      gene,
+                      rna_diff, 
+                      dna_diff, 
+                      region,
+                      rna_thresh,
+                      dna_thresh){
+  gene = enquo(gene)
+  rna_diff = enquo(rna_diff)
+  dna_diff = enquo(dna_diff)
+  region = enquo(region)
+  df <- df %>%
+    as_tibble() %>%
+    mutate(dna_diff_pct = !!dna_diff * 100)
+  ggplot(data = df,
+         aes(text = !!gene,
+             x = dna_diff_pct,
+             y = !!rna_diff,
+             fill = !!region)) +
+    geom_point(alpha = 0.7,
+               size = 2,
+               shape = 21) +
+    geom_hline(yintercept = c(-rna_thresh, rna_thresh), linetype = "dashed") +
+    geom_vline(xintercept = c(-dna_thresh, dna_thresh), linetype = "dashed") +
+    scale_x_continuous("DNA Methylation Difference (%)") +
+    scale_y_continuous("RNA Expression Difference (log2)") +
+    ggtitle("To be added by user") +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+
+
