@@ -100,25 +100,29 @@ two.cl.heat <- function(up.dn_dn.up_table){
 
 
 # starburst plot
-# input: a dataframe or tibble, colname of RNA exp diff, colname of DNA methyl ratio diff (decimal not %), absolute threshhold of RNA diff, absolute threshhold of DNA diff %
+# input: a dataframe or tibble, gene col, RNA exp diff col, DNA methyl ratio diff col, 
+#        absolute threshhold of RNA diff, absolute threshhold of DNA diff %， string of plot title
 starburst <- function(df,
                       gene,
-                      rna_diff, 
-                      dna_diff, 
+                      rna_exp_diff, 
+                      dna_methyl_diff, 
                       region,
                       rna_thresh,
-                      dna_thresh){
+                      dna_thresh,
+                      title){
   gene = enquo(gene)
-  rna_diff = enquo(rna_diff)
-  dna_diff = enquo(dna_diff)
+  rna_exp_diff = enquo(rna_exp_diff)
+  dna_methyl_diff = enquo(dna_methyl_diff)
   region = enquo(region)
+  
   df <- df %>%
     as_tibble() %>%
-    mutate(dna_diff_pct = !!dna_diff * 100)
+    mutate(DNA_methyl_diff_pct = !!dna_methyl_diff * 100)
+  
   ggplot(data = df,
          aes(text = !!gene,
-             x = dna_diff_pct,
-             y = !!rna_diff,
+             x = DNA_methyl_diff_pct,
+             y = !!rna_exp_diff,
              fill = !!region)) +
     geom_point(alpha = 0.7,
                size = 2,
@@ -127,7 +131,7 @@ starburst <- function(df,
     geom_vline(xintercept = c(-dna_thresh, dna_thresh), linetype = "dashed") +
     scale_x_continuous("DNA Methylation Difference (%)") +
     scale_y_continuous("RNA Expression Difference (log2)") +
-    ggtitle("To be added by user") +
+    ggtitle(title) +
     theme(plot.title = element_text(hjust = 0.5))
 }
 

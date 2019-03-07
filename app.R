@@ -123,22 +123,22 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                 1) Align RNA and DNA-seq
                                 2) conduct differential expression (DE) analysis with ",
                                 a("DEGseq, ",
-                                  href="https://bioconductor.org/packages/release/bioc/html/DEGseq.html"),
+                                  href = "https://bioconductor.org/packages/release/bioc/html/DEGseq.html"),
                                 a("DESeq2 ",
-                                  href="http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
+                                  href = "http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
                                 " based on the provided input data (raw count table and experimental design table).",
-                                style="padding-left: 0em"),
+                                style = "padding-left: 0em"),
                               h3("1. RNA Analysis Data input", 
-                                 style="padding-left: 1em"),
+                                 style = "padding-left: 1em"),
                               h4("1.1 Experimental Design Table",
-                                 style="padding-left: 3em"), 
+                                 style = "padding-left: 3em"), 
                               p("This input data contains summarized experimental design information for each sample. 
                                 The first column, Sample Name, will be the same as in Count Table. The Second column, 
                                 Sample Label, will be shown in the result plots and tables. 
                                 A template of the design table can be downloaded ",
                                 a("here.", 
-                                  href="https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y")
-                                , style="padding-left: 5em")
+                                  href = "https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y")
+                                , style = "padding-left: 5em")
                     ),
                     
                     ## -------- FASTQ Processing -------------------
@@ -800,7 +800,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                                label = "Apply"))
                                          ),
                                          fluidRow(
-                                           column(6,
+                                           column(7,
                                                   tags$h4("Inner Joined Table Summary:"),
                                                   verbatimTextOutput("display_summary_inner_joined_rna_dna")))
                                          
@@ -809,24 +809,29 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                        wellPanel(
                                          tags$h3("Starburst Plot"),
                                          fluidRow(
-                                           column(2,
+                                           column(3,
                                                   numericInput(inputId = "starburst_rna_hline",
                                                                label = "Enter RNA expression diff threshold",
                                                                value = 0.1)),
-                                           column(2,
+                                           column(3,
                                                   numericInput(inputId = "starburst_dna_vline",
                                                                label = "Enter DNA methylation % diff threshold",
                                                                value = 10)),
-                                           column(2,
+                                           column(3,
+                                                  textInput(inputId = "starburst_title",
+                                                            label = "Enter plot title",
+                                                            value = "DNA vs RNA: starburst plot")),
+                                           column(1,
                                                   actionButton(inputId = "generate_starburst_plot_rna_vs_dna",
-                                                               label = "Generate Starburst Plot")),
-                                           column(2,
-                                                  downloadButton(outputId = "download_starburst_plot_rna_vs_dna",
-                                                                 label = "Download Plot"))),
+                                                               label = "Generate Plot")),
+                                           column(1,
+                                                  downloadButton(outputId = "download_starburst_plot_and_joined_table",
+                                                                 label = "Download Results"))),
+                                         hr(),
                                          fluidRow(
-                                           column(12,
-                                                  plotlyOutput(outputId = "starburst_plot")
-                                                  )
+                                           column(7,
+                                                  plotlyOutput(outputId = "starburst_plot"))
+                                                  
                                          )
                                        )
                                        )
@@ -1663,11 +1668,11 @@ server <- function(input, output, session) {
   
   ## generate count plot
   observeEvent(input$generate_count_plot,{
-    if(is.null(input$enter_gene_name) | is.null(input$intgroup)){
+    if (is.null(input$enter_gene_name) | is.null(input$intgroup)) {
       showNotification("Please enter one gene name and select interested covariate(s)",
                        type = "error",
                        duration = 15)
-    }else if(input$enter_gene_name %in% rownames(rv$dds_trimmed)  == FALSE ){
+    }else if (input$enter_gene_name %in% rownames(rv$dds_trimmed)  == FALSE ) {
       showNotification("Please enter the exact correct gene name",
                        type = "error",
                        duration = 15)
@@ -1675,18 +1680,17 @@ server <- function(input, output, session) {
       dt <- plotCounts(rv$dds_res, gene = input$enter_gene_name,
                        intgroup = input$intgroup, 
                        returnData = TRUE)
-      if(length(input$intgroup) > 1){
+      if (length(input$intgroup) > 1) {
         dt$group <- apply(dt[, -1], 
                           1, 
                           paste,
-                          collapse= "_")
+                          collapse = "_")
       }
       
       rv$count_plot <- ggplot(dt,
-                              aes(x=dt[,ncol(dt)],
-                                  y=count)) +
-        geom_point(position=position_jitter(w = 0.1,
-                                            h = 0)) +
+                              aes(x = dt[,ncol(dt)],
+                                  y = count)) +
+        geom_point(position = position_jitter(width = 0.1, height = 0)) +
         labs(y = "normalized count", 
              x = NULL)
       output$deseq2_count_plot  <- renderPlot({print(rv$count_plot)})
@@ -1755,7 +1759,7 @@ server <- function(input, output, session) {
       dev.off()
       
       fs <- c(file_path1, file_path2, file_path3, file_path4)
-      zip(zipfile=fname, files=fs)
+      zip(zipfile = fname, files = fs)
     },
     contentType = "application/zip"
   )
@@ -1763,7 +1767,7 @@ server <- function(input, output, session) {
   
   output$download_degseq <- downloadHandler(
     filename = function() {
-      paste("degseq_results", ".zip", sep="")
+      paste("degseq_results", ".zip", sep = "")
     },
     content = function(fname) {
       
@@ -1911,7 +1915,7 @@ server <- function(input, output, session) {
       print(rv$deseq2_ma)
       dev.off()
       
-      if(!is.null(rv$count_plot)){
+      if (!is.null(rv$count_plot)) {
         file_path4 <- paste(input$project_name,
                             "_deseq2_count_plot.tiff",
                             sep = "")
@@ -2048,7 +2052,7 @@ server <- function(input, output, session) {
                                                     na.rm = TRUE) > 0, ]),
                       silent = TRUE)
     
-    if(class(rv$dt_dna2) == "try-error"){
+    if (class(rv$dt_dna2) == "try-error") {
       showNotification(rv$dds[1],
                        type = "error",
                        duration = 15)
@@ -2083,8 +2087,7 @@ server <- function(input, output, session) {
       # cpg hist (not related to samples)
       rv$cpg_hist <- ggplot(rv$dt_dna2,
                             aes(x = CpG)) +
-        facet_wrap(~ reg,
-                   scale = "free_y") +
+        facet_wrap(~ reg, scale = "free_y") +
         geom_histogram(color = "black",
                        fill = "grey",
                        binwidth = 5) +
@@ -2137,7 +2140,7 @@ server <- function(input, output, session) {
                                       group = trt,
                                       fill = trt)) +
         geom_bar(position = position_dodge(),
-                 stat="identity") +
+                 stat = "identity") +
         scale_x_discrete("Region") +
         scale_y_continuous("Average Methylation (%)",
                            limits = c(0, 100)) +
@@ -2222,7 +2225,7 @@ server <- function(input, output, session) {
                        expand = c(0, 0)) +
       theme(axis.text.x = element_text(angle = 30,
                                        hjust = 1),
-            plot.title = element_text(hjust = 0.5))+
+            plot.title = element_text(hjust = 0.5)) +
       ggtitle(paste0("Top ", 
                      input$dna_heat_top_n,
                      " Genes With Largest\nPositive Differences in ",
@@ -2250,7 +2253,7 @@ server <- function(input, output, session) {
                        expand = c(0, 0)) +
       theme(axis.text.x = element_text(angle = 30,
                                        hjust = 1),
-            plot.title = element_text(hjust = 0.5))+
+            plot.title = element_text(hjust = 0.5)) +
       ggtitle(paste0("Top ", 
                      input$dna_heat_top_n,
                      "  Genes With Largest\nNegative Differences in ",
@@ -2281,11 +2284,11 @@ server <- function(input, output, session) {
     df1 <- data.frame(chr = dt$geneChr,
                       pos = dt$start,
                       N = dt[, comp1[1]],
-                      X= dt[, comp1[2]])
+                      X = dt[, comp1[2]])
     df2 <- data.frame(chr = dt$geneChr,
                       pos = dt$start,
                       N = dt[, comp2[1]],
-                      X= dt[, comp2[2]])
+                      X = dt[, comp2[2]])
     frames <- list(df1, df2)
     names(frames) <- c(name1, name2)
     bsdata <- makeBSseqData(frames, names(frames))
@@ -2400,26 +2403,34 @@ server <- function(input, output, session) {
     rv$joined_rna_dna <- try(
       inner_join(rna_sig, dna_sig, by = "gene"),
       silent = T)
-    if (class(rv$joined_rna_dna) == "try-error") {
+    
+    if (inherits(rv$joined_rna_dna, "try-error")) {
       showNotification("Please choose the correct columns and try again",
                        type = "error",
                        duration = 15)
 
     }else{
+      rv$joined_rna_dna %>%
+        mutate(region = as.factor(region)) -> rv$joined_rna_dna
       output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
     }
     
     })
   
   
-  # observeEvent(input$rename_region_rna_vs_dna,{
-  #   rv$joined_rna_dna <- rv$joined_rna_dna %>%
-  #     mutate(region = replace(region, 
-  #                             str_detect(input$region_name_contian_rna_vs_dna,
-  #                                        input$region_new_name_rna_vs_dna),
-  #                             input$region_new_name_rna_vs_dna))
-  #   
-  # })
+  observeEvent(input$rename_region_rna_vs_dna,{
+    rv$joined_rna_dna %>%
+      mutate(region = as.character(region)) %>%
+      mutate(region = replace(region,
+                              str_detect(region,
+                                         input$region_name_contian_rna_vs_dna),
+                              input$region_new_name_rna_vs_dna)) %>%
+      mutate(region =  as.factor(region)) -> 
+      rv$joined_rna_dna
+    output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
+
+  })
+  
   observeEvent(input$generate_starburst_plot_rna_vs_dna,{
     rv$starburst_plot <- starburst(rv$joined_rna_dna,
                                    gene,
@@ -2427,14 +2438,49 @@ server <- function(input, output, session) {
                                    DNA_methyl_diff,
                                    region,
                                    input$starburst_rna_hline,
-                                   input$starburst_dna_vline)
+                                   input$starburst_dna_vline,
+                                   input$starburst_title)
     p1 <- ggplotly(rv$starburst_plot,
-                   tooltip = c("text", "x", "y"))
+                   tooltip = c("text", "x", "y")) %>%
+      layout(height = 800, width = 800)
     output$starburst_plot <- renderPlotly({print(p1)})
   })
   
-  
-  
+  # -------------- download plot and joined table ------------
+  output$download_starburst_plot_and_joined_table <- downloadHandler(
+    filename = function() {
+      paste("rna_vs_dna_results", ".zip", sep = "")
+    },
+    content = function(fname) {
+      
+      file_path1 <- paste(input$project_name,
+                          "_rna_vs_dna_starburst_plot",
+                          ".tiff",
+                          sep = "")
+      tiff(filename = file_path1,
+           height = 10,
+           width = 10,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      print(rv$starburst_plot)
+      dev.off()
+      
+      file_path2 <- paste(input$project_name,
+                          "_rna_vs_dna_joined_table",
+                          ".csv",
+                          sep = "")
+      write.csv(rv$joined_rna_dna, 
+                file_path2, 
+                row.names = FALSE)
+      
+      fs <- c(file_path1,
+              file_path2)
+      zip(zipfile = fname, 
+          files = fs)
+    },
+    contentType = "application/zip"
+  )
 }
 
 shinyApp(ui, server)
