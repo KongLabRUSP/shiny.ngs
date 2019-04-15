@@ -1,3 +1,4 @@
+
 # input: a dtf of count table, a dtf of design table, a vector of selected sample lables, a string of selected gene column name
 # output: a dtf selected count table with column "gene", "selected sample label 1", "selected sample label 2", .. same order as in sample.labels
 # function uses the sample lable vector, find the coresponding sample names in info table and selected these samples together with the gene column from the count table. 

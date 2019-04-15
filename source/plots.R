@@ -43,7 +43,7 @@ ma <- function(dt.tb, q_value, fold_change){
   
 }
 
-# two circle heatmap 
+# Change-in-gene-expression plot, a two-circle heatmap 
 # input: a sorted up.dn_dn.up_table, like the one produced by cige function
 # output: a two cricle heatmap of the normalized logfoldcgange
 two.cl.heat <- function(up.dn_dn.up_table){
@@ -99,6 +99,48 @@ two.cl.heat <- function(up.dn_dn.up_table){
 }
 
 
+# two-column heatmep, sort the input dt decreasing based on diff1, then plot heatmap
+# input: a dataframe or tibble, names of gene col, diff1 and diff2 col in the dataframe or tibble, title of the plot, x_axis_titles
+# output: a two column heatmap, first column is diff1, second column is diff2
+two_column_heatmap <- function(df,
+                               gene_col,
+                               diff_1,
+                               diff_2,
+                               title,
+                               x_text_1,
+                               x_text_2){
+  gene_col = enquo(gene_col)
+  diff_1 = enquo(diff_1)
+  diff_2 = enquo(diff_2)
+  
+  
+  df <- df %>% 
+    as.tibble() %>% 
+    mutate(gene_reorder = fct_reorder(!!gene_col, !!diff_1)) %>% 
+    select(gene_reorder, !!diff_1, !!diff_2)
+  colnames(df) <- c("gene_reorder", x_text_1, x_text_2)
+  df <- df %>% 
+    gather(key = "contrast", value = "diff", -gene_reorder)
+  
+  
+  
+  ggplot(data = df,
+       aes(x = contrast, 
+           y = gene_reorder )) +
+  geom_tile(aes(fill = diff), color = "white") +
+  scale_fill_gradient2(low = "red", high = "green", mid = "grey", midpoint = 0) +
+  labs(title = title) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank()
+        )
+}
+
+
+
+
 # starburst plot
 # input: a dataframe or tibble, gene col, RNA exp diff col, DNA methyl ratio diff col, 
 #        absolute threshhold of RNA diff, absolute threshhold of DNA diff %， string of plot title
@@ -124,9 +166,7 @@ starburst <- function(df,
              x = DNA_methyl_diff_pct,
              y = !!rna_exp_diff,
              fill = !!region)) +
-    geom_point(alpha = 0.7,
-               size = 2,
-               shape = 21) +
+    geom_point(alpha = 0.7, size = 2, shape = 21) +
     geom_hline(yintercept = c(-rna_thresh, rna_thresh), linetype = "dashed") +
     geom_vline(xintercept = c(-dna_thresh, dna_thresh), linetype = "dashed") +
     scale_x_continuous("DNA Methylation Difference (%)") +
