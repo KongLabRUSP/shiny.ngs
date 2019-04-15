@@ -11,6 +11,7 @@
 #               "fgsea",
 #               "ggdendro",
 #               "ggplot2",
+#               "gridExtra",
 #               "knitr",
 #               "MASS",
 #               "packrat",
@@ -62,6 +63,7 @@ library(shinyWidgets)
 library(data.table)
 library(ggdendro)
 library(ggplot2)
+library(gridExtra)
 library(knitr)
 library(MASS)
 library(pheatmap)
@@ -82,7 +84,7 @@ library(TxDb.Mmusculus.UCSC.mm10.knownGene)
 library(DSS)
 
 # load dplyr last to avoid "select" being masked from biomaRt or plotly
-library(dplyr)
+library(tidyverse)
 
 # Determine the OS
 sysOS <- Sys.info()[['sysname']]
@@ -116,6 +118,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                           tabName = "dna_vs_rna",
                                                           icon = icon("th")))),
                     dashboardBody(tabItems(
+                      
                       ## ---------- Introduction ------------
                       tabItem(tabName = "introduction",
                               h2("Instructions"),
@@ -138,8 +141,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                 A template of the design table can be downloaded ",
                                 a("here.", 
                                   href = "https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y")
-                                , style = "padding-left: 5em")
-                    ),
+                                , style = "padding-left: 5em")),
                     
                     ## -------- FASTQ Processing -------------------
                     tabItem(tabName = "count",
@@ -208,9 +210,11 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                             mainPanel(tags$h3("File Directory"),
                                       verbatimTextOutput(outputId = "fileDir"),
                                       tags$h3("Program"),
-                                      verbatimTextOutput("program"))),
+                                      verbatimTextOutput("program"))
+                            # tabItem "count" ends
+                            ),
                     
-                    ## ---------------- rna seq analysis -----------------
+                    ## ---------------- RNA seq analysis -----------------
                     tabItem(tabName = "rna-seq_analysis",
                             tabsetPanel(
                               ## ------- read in data -------------
@@ -241,7 +245,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          DT::dataTableOutput(outputId = 'display_rna_info'))),
                               
                               
-                              ## ------- Exploratory Analysis ---------
+                              ## ------- exploratory analysis ---------
                               tabPanel("Exploratory Analysis", 
                                        wellPanel(
                                          tags$h3("Data Preparation"),
@@ -277,9 +281,6 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          plotlyOutput(outputId = "display_count_hist")),
                                        
                                        wellPanel(
-                                         plotOutput(outputId = "expl_tst")),
-                                       
-                                       wellPanel(
                                          tags$h3("Between-sample Distribution: Boxplot"),
                                          fluidRow(
                                            column(6,
@@ -290,59 +291,56 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                   wellPanel(
                                                     tags$h3("Heatmap Sampel-to-sample Distance"),
                                                     fluidRow(
-                                                      plotlyOutput(outputId = "display_heatmap_expl")
+                                                      plotOutput(outputId = "display_heatmap_expl")
                                                     ))),
                                            column(6,
                                                   wellPanel(
                                                     tags$h3("PCA Plot"),
-                                                    fluidRow(plotlyOutput(outputId = "display_pca_expl"))))))
-                              ),
+                                                    fluidRow(plotlyOutput(outputId = "display_pca_expl"))))))),
                               
                               
                               ## ------------- DEGseq --------------
                               tabPanel("DE Analysis: DEGseq",
                                        # Data preparation
-                                       wellPanel(
-                                         tags$h3("Data Preparation"),
-                                         fluidRow(
-                                           column(2,
-                                                  selectInput(inputId = "gene_col_selected_degseq",
-                                                              label = "Select gene column",
-                                                              choices = NULL,
-                                                              multiple = FALSE,
-                                                              selected = NULL)),
-                                           column(4,
-                                                  selectInput(inputId = "sample_label_selected_degseq",
-                                                              label = "Select 3 Samples in order: trt1 trt2 trt3",
-                                                              choices = NULL,
-                                                              multiple = TRUE,
-                                                              selected = NULL)),
-                                           column(4,
-                                                  textInput(inputId = "row_sum",
-                                                            label = "Remove if sum across 3 samples is <",
-                                                            value = "10"))
-                                         ),
-                                         fluidRow(column(2,
-                                                         actionButton(inputId = "trim",
-                                                                      label = "Generate Count Table"))),
-                                         
-                                         fluidRow(
-                                           column(6,
-                                                  tags$h4("Trimmed Count Table Summary:"),
-                                                  verbatimTextOutput("trimmed_left"),
-                                                  verbatimTextOutput("display_trimmed_ct")))),
+                                       wellPanel(tags$h3("Data Preparation"),
+                                                 fluidRow(
+                                                   column(2,
+                                                          selectInput(inputId = "gene_col_selected_degseq",
+                                                                      label = "Select gene column",
+                                                                      choices = NULL,
+                                                                      multiple = FALSE,
+                                                                      selected = NULL)),
+                                                   column(4,
+                                                          selectInput(inputId = "sample_label_selected_degseq",
+                                                                      label = "Select 2 Samples in order: trt1(denominator) trt2(numerator)",
+                                                                      choices = NULL,
+                                                                      multiple = TRUE,
+                                                                      selected = NULL)),
+                                                   column(4,
+                                                          textInput(inputId = "row_sum",
+                                                                    label = "Remove if sum across 2 samples is <",
+                                                                    value = "10"))),
+                                                 fluidRow(
+                                                   column(2,
+                                                          actionButton(inputId = "trim",
+                                                                       label = "Generate Count Table"))),
+                                                 fluidRow(
+                                                   column(6,
+                                                          tags$h4("Trimmed Count Table Summary:"),
+                                                          verbatimTextOutput("trimmed_left"),
+                                                          verbatimTextOutput("display_trimmed_ct")))),
                                        
                                        ## DE analysis
                                        wellPanel(
                                          tags$h3("DE Analysis"),
                                          fluidRow(
                                            column(3,
-                                                  selectInput(inputId = "q_value",
+                                                  selectInput(inputId = "degseq_q_value",
                                                               label = "q-value(Storey et al. 2003) <",
                                                               choices = c(0.01, 0.05, 0.1, 0.25),
                                                               selected = 0.01)),
                                            column(3,
-                                                  selectInput(inputId = "fold_change",
+                                                  selectInput(inputId = "degseq_fold_change",
                                                               label = "Obs(log2(fold change)) >=",
                                                               choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
                                                               selected = 1)),
@@ -352,61 +350,18 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                            column(3,
                                                   downloadButton(outputId = "download_degseq",
                                                                  label = "Download Results"))),
-                                         wellPanel(
-                                           tags$h4("trt2-trt1 Result Table:"),
+                                         wellPanel(tags$h4("Result Table:"),
                                            DT::dataTableOutput(outputId = "result_table1_degseq")),
                                          
-                                         wellPanel(
-                                           tags$h4("trt3-trt2 Result Table:"),
-                                           DT::dataTableOutput(outputId = "result_table2_degseq")),
-                                         
-                                         tags$h4("MA Plot:"),
-                                         fluidRow(
-                                           column(6,
-                                                  wellPanel(
-                                                    textInput(inputId = "ma1_title",
-                                                              label = "Enter trt2-trt1 MA plot title below:",
-                                                              value = ""),
-                                                    plotlyOutput(outputId = "ma1_degseq"))),
-                                           column(6,
-                                                  wellPanel(
-                                                    textInput(inputId = "ma2_title",
-                                                              label = "Enter trt3-trt2 MA plot title below:",
-                                                              value = ""),
-                                                    plotlyOutput(outputId = "ma2_degseq")))),
-                                         fluidRow(
-                                           column(6,
-                                                  verbatimTextOutput(outputId = "result_kable1")),
-                                           column(6,
-                                                  verbatimTextOutput(outputId = "result_kable2")))
-                                       ),
-                                       
-                                       # Changes in Gene Expression
-                                       wellPanel(
-                                         tags$h3("Changes in Gene Expression"),
-                                         fluidRow(
-                                           column(3,
-                                                  actionButton(inputId = "generate_result_change",
-                                                               label = "Generate Results")),
-                                           column(3,
-                                                  downloadButton(outputId = "download_cige",
-                                                                 label = "Download Results"))),
-                                         fluidRow(
-                                           column(8,
-                                                  tableOutput(outputId = "change_number"))),
-                                         fluidRow(
-                                           column(6,
-                                                  plotOutput(outputId = "display_venn_diagram1")),
-                                           column(6,
-                                                  plotOutput(outputId = "display_venn_diagram2"))),
-                                         fluidRow(column(12,
-                                                         tags$h4(" "))),
-                                         fluidRow(
-                                           column(6,
-                                                  plotOutput(outputId = "display_up.dn_dn.up_heatmap")),
-                                           column(6,
-                                                  wellPanel(DT::dataTableOutput(outputId = "display_up.dn_dn.up_table"))))
-                                       )),
+                                         wellPanel(tags$h4("MA Plot:"),
+                                                   fluidRow(column(3,
+                                                                   textInput(inputId = "ma1_title",
+                                                                             label = "Enter MA plot title below:",
+                                                                             value = ""))),
+                                                   fluidRow(column(6,
+                                                                   plotlyOutput(outputId = "ma1_degseq")),
+                                                            column(6,
+                                                                   tableOutput(outputId = "degseq_sign_number")))))),
                               
                               
                               ## --------------- DEseq2 ----------------
@@ -454,12 +409,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                            column(6,
                                                   tags$h4("DESeqDataSet Summary:"),
                                                   verbatimTextOutput(outputId = "trim_left_number"),
-                                                  verbatimTextOutput("display_formula"))),
-                                         fluidRow(
-                                           verbatimTextOutput("test1"),
-                                           verbatimTextOutput("test2")
-                                         )
-                                       ),
+                                                  verbatimTextOutput("display_formula")))),
                                        
                                        # DE analysis
                                        wellPanel(
@@ -522,13 +472,121 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                                    actionButton(inputId = "generate_count_plot",
                                                                                 label = "Generate Count Plot"))),
                                                    fluidRow(column(6,
-                                                                   plotOutput(outputId = "deseq2_count_plot"))))
-                                       )
-                              )
-                            )
-                    ),
+                                                                   plotOutput(outputId = "deseq2_count_plot")))))),
+                              ## ----------- change in gene expression analysis----------------
+                              tabPanel("Change in Gene Expression",
+                                       wellPanel(
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "rna_contrast_1",
+                                                            label = "Select RNA File of contrast 1",
+                                                            accept = c(".csv")))),
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "rna_contrast_2",
+                                                            label = "Select RNA File of contrast 1",
+                                                            accept = c(".csv"))))),
+                                       wellPanel(
+                                         tags$h4("View Contrast 1 Table:"),
+                                         DT::dataTableOutput(outputId = 'display_rna_contrast_1')),
+                                       wellPanel(
+                                         tags$h4("View Contrast 2 Table:"),
+                                         DT::dataTableOutput(outputId = 'display_rna_contrast_2')),
+                                       
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "gene_col_selected_rna_contrast_1",
+                                                              label = "From Contrast 1 select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "logfold_change_selected_contrast_1",
+                                                              label = "Select (normalized) logfold change column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "p_value_selected_rna_contrast_1",
+                                                              label = "Select P value column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "gene_col_selected_rna_contrast_2",
+                                                              label = "From Contrast 2 select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "logfold_change_selected_contrast_2",
+                                                              label = "Select (normalized) logfold change column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "p_value_selected_rna_contrast_2",
+                                                              label = "Select P value column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "p_thresh_change_in_gene_expr",
+                                                              label = "p value <",
+                                                              choices = c(0.01, 0.05, 0.1, 0.25),
+                                                              selected = 0.01)),
+                                           column(3,
+                                                  selectInput(inputId = "logfold_change_thresh_change_in_gene_expr",
+                                                              label = "Obs(log2(fold change)) >=",
+                                                              choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+                                                              selected = 1)),
+                                           column(3,
+                                                  actionButton(inputId = "inner_join_2contrasts_rna",
+                                                               label = "Inner Join Contrast 1 and Contrast 2 table"))),
+                                         fluidRow(
+                                           column(7,
+                                                  tags$h4("Inner Joined Table Summary:"),
+                                                  verbatimTextOutput("display_summary_inner_joined_2contrasts_rna")))),
+                                       wellPanel(
+                                         tags$h3("Change-in-gene-expression Heatmap"),
+                                         fluidRow(
+                                           column(3,
+                                                  textInput(inputId = "change_in_gene_expr_plot_title",
+                                                            label = "Enter plot title",
+                                                            value = "Change in Gene Expression")),
+                                           
+                                           column(2,
+                                                  textInput(inputId = "change_in_gene_expr_plot_x_text_1",
+                                                            label = "x axis text 1",
+                                                            value = "trt_2 vs trt_1")),
+                                           column(2,
+                                                  textInput(inputId = "change_in_gene_expr_plot_x_text_2",
+                                                            label = "x axis text 2",
+                                                            value = "trt_3 vs trt_2")),
+                                           column(2,
+                                                  actionButton(inputId = "generate_change_in_gene_expr_plot",
+                                                               label = "Generate Heatmap")),
+                                           column(2,
+                                                  downloadButton(outputId = "download_change_in_gene_expr_plot",
+                                                                 label = "Download Results"))),
+                                         hr(),
+                                         fluidRow(
+                                           column(5,
+                                                  plotOutput(outputId = "display_venn_diagram1_rna")),
+                                           column(5,
+                                                  plotOutput(outputId = "display_venn_diagram2_rna"))),
+                                         hr(),
+                                         fluidRow(
+                                           column(7,
+                                                  plotlyOutput(outputId = "change_in_gene_expr_plot")))))
+                              # tabItem "rna-seq_analysis" ends
+                              )),
                     
-                    ## ---------------- dna methylseq analysis ----------------
+                    ## ---------------- DNA methylseq analysis ----------------
                     tabItem(tabName = "dna-seq_analysis",
                             tabsetPanel(
                               ## ------------ annotation -----------
@@ -556,12 +614,9 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                           column(2,
                                                                  textInput(inputId = "annodb",
                                                                            label = "Annotation package",
-                                                                           value = "org.Mm.eg.db"))
-                                                 ),
+                                                                           value = "org.Mm.eg.db"))),
                                                  actionButton(inputId = "annotate",
-                                                              label = "Annotate")
-                                       )
-                              ),
+                                                              label = "Annotate"))),
                               ## ----- exploratory analysis -----------
                               tabPanel("Exploratory Analysis",
                                        wellPanel(fluidRow(column(3,
@@ -584,10 +639,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                           column(2,
                                                                  actionButton(inputId = "generate_expl_dna",
                                                                               label = "Generate Results"))),
-                                                 verbatimTextOutput("test_dna")
-                                                 # verbatimTextOutput("test_dna1"),
-                                                 # verbatimTextOutput("test_dna2")
-                                       ),
+                                                 verbatimTextOutput("test_dna")),
                                        
                                        wellPanel(tags$h3("Annotation by Region (%)"),
                                                  plotOutput(outputId = "anno_by_reg")),
@@ -596,49 +648,43 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                        wellPanel(tags$h3("Methyl% by region"),
                                                  plotOutput(outputId = "meth_by_region")),
                                        # heatmap
-                                       wellPanel(
-                                         tags$h3("Heatmap of Methyl% on Gene Level"),
-                                         
-                                         fluidRow(
-                                           column(3,
-                                                  selectInput(inputId = "dna_heat_N",
-                                                              label = "Select sample columns for dtN",
-                                                              choices = NULL,
-                                                              multiple = TRUE,
-                                                              selected = NULL)),
-                                           column(3,
-                                                  selectInput(inputId = "dna_heat_X",
-                                                              label = "Select sample columns for dtX",
-                                                              choices = NULL,
-                                                              multiple = TRUE,
-                                                              selected = NULL)),
-                                           column(3,
-                                                  textInput(inputId = "dna_heat_sample_name",
-                                                            label = "Enter sample name in order, seperated by comma",
-                                                            value = ""))),
-                                         fluidRow(
-                                           column(3,
-                                                  selectInput(inputId = "dna_heat_reg",
-                                                              label = "Select one region of interest",
-                                                              choices = c("Promoter", "5' UTR", "Body", "3' UTR", "Downstream"),
-                                                              multiple = FALSE,
-                                                              selected = "Promoter")),
-                                           column(4,
-                                                  textInput(inputId = "dna_heat_top_n",
-                                                            label = "Display top n genes with largest positive and negative mythly% diff",
-                                                            value = "20")),
-                                           column(3,
-                                                  actionButton(inputId = "generate_dna_heat",
-                                                               label = "Generate Result"))),
-                                         fluidRow(
-                                           column(6,
-                                                  plotlyOutput(outputId = "dna_heat1")),
-                                           column(6,
-                                                  plotlyOutput(outputId = "dna_heat2"))
-                                         )
-                                         
-                                       )
-                              ),
+                                       wellPanel(tags$h3("Heatmap of Methyl% on Gene Level"),
+                                                 fluidRow(
+                                                   column(3,
+                                                          selectInput(inputId = "dna_heat_N",
+                                                          label = "Select sample columns for dtN",
+                                                          choices = NULL,
+                                                          multiple = TRUE,
+                                                          selected = NULL)),
+                                                   column(3,
+                                                          selectInput(inputId = "dna_heat_X",
+                                                          label = "Select sample columns for dtX",
+                                                          choices = NULL,
+                                                          multiple = TRUE,
+                                                          selected = NULL)),
+                                                   column(3,
+                                                          textInput(inputId = "dna_heat_sample_name",
+                                                          label = "Enter sample name in order, seperated by comma",
+                                                          value = ""))),
+                                                 fluidRow(
+                                                   column(3,
+                                                          selectInput(inputId = "dna_heat_reg",
+                                                          label = "Select one region of interest",
+                                                          choices = c("Promoter", "5' UTR", "Body", "3' UTR", "Downstream"),
+                                                          multiple = FALSE,
+                                                          selected = "Promoter")),
+                                                   column(4,
+                                                          textInput(inputId = "dna_heat_top_n",
+                                                          label = "Display top n genes with largest positive and negative mythly% diff",
+                                                          value = "20")),
+                                                   column(3,
+                                                          actionButton(inputId = "generate_dna_heat",
+                                                          label = "Generate Result"))),
+                                                 fluidRow(
+                                                   column(6,
+                                                          plotlyOutput(outputId = "dna_heat1")),
+                                                   column(6,
+                                                          plotlyOutput(outputId = "dna_heat2"))))),
                               
                               ## ------------ DSS ---------------
                               tabPanel("DE Analysis: DSS",
@@ -648,11 +694,11 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          p("To make BSseq Data for pairwise comparison, select the sample columns for each comparison, following the order 
                                            (1)N: Read coverage of the position from BS-seq data; 
                                            (2)X: Number of reads showing methylation of the position.",
-                                           style="padding-left: 0em"),
+                                           style = "padding-left: 0em"),
                                          p("For example, comparison1 (Con_N, Con_X), comparison2 (Exp_N, Exp_X). 
                                            Corresponding name can be Con and  Exp. For more information, please refer to  ",
-                                           a("DSS. ", href="https://bioconductor.org/packages/release/bioc/manuals/DSS/man/DSS.pdf"),
-                                           style="padding-left: 0em"),
+                                           a("DSS. ", href = "https://bioconductor.org/packages/release/bioc/manuals/DSS/man/DSS.pdf"),
+                                           style = "padding-left: 0em"),
                                          
                                          
                                          tags$h4("Construct BSseqData"),
@@ -696,8 +742,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                            column(3,
                                                   textInput(inputId = "dss_smoothing_span",
                                                             label = "smoothing.span",
-                                                            value = 500))
-                                         ),
+                                                            value = 500))),
                                          tags$h4("Set threshold"),
                                          fluidRow(
                                            column(3,
@@ -710,25 +755,98 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                               label = "Obs(diff methyl%) >=",
                                                               choices = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5),
                                                               selected = 0.1)),
-                                           # column(3,
-                                           #        downloadButton(outputId = "download_dss",
-                                           #                       label = "Download Results")),
                                            column(2,
                                                   actionButton(inputId = "generate_dss",
-                                                               label = "Generate result and download"))
-
-                                         )
-                                       ),
-                                       wellPanel(
+                                                               label = "Generate result and download")))),
+                                         wellPanel(
                                          tags$h3("Result of DML test"),
-                                         DT::dataTableOutput(outputId = "dss_dml_tb")
-                                       )
+                                         DT::dataTableOutput(outputId = "dss_dml_tb"))),
+                              
+                              ## ------------ change in methyl ratio analysis ---------------
+                              tabPanel("Change in Methylation Ratio",
+                                       wellPanel(
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "dna_contrast_1",
+                                                            label = "Select DNA File of contrast 1",
+                                                            accept = c(".csv")))),
+                                         fluidRow(
+                                           column(6,
+                                                  fileInput(inputId = "dna_contrast_2",
+                                                            label = "Select DNA File of contrast 1",
+                                                            accept = c(".csv"))))),
+                                       wellPanel(
+                                         tags$h4("View Contrast 1 Table:"),
+                                         DT::dataTableOutput(outputId = 'display_contrast_1')),
+                                       wellPanel(
+                                         tags$h4("View Contrast 2 Table:"),
+                                         DT::dataTableOutput(outputId = 'display_contrast_2')),
                                        
-                                       
-                                       )
+                                       wellPanel(
+                                         tags$h3("Data Preparation"),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "gene_col_selected_dna_contrast_1",
+                                                              label = "From Contrast 1 table select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "methyl_diff_dna_contrast_1",
+                                                              label = "Select DNA methylation ratio difference column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(3,
+                                                  selectInput(inputId = "gene_col_selected_dna_contrast_2",
+                                                              label = "From Contrast 2 table select gene column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  selectInput(inputId = "methyl_diff_dna_contrast_2",
+                                                              label = "Select DNA methylation ratio difference column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(3,
+                                                  actionButton(inputId = "inner_join_2contrasts",
+                                                               label = "Inner Join Contrast 1 and Contrast 2 table"))),
+                                         fluidRow(
+                                           column(7,
+                                                  tags$h4("Inner Joined Table Summary:"),
+                                                  verbatimTextOutput("display_summary_inner_joined_2contrasts")))),
+                                       wellPanel(
+                                         tags$h3("Change-in-Methyl-Ratio Heatmap"),
+                                         fluidRow(
+                                           column(3,
+                                                  textInput(inputId = "change_in_methyl_plot_title",
+                                                            label = "Enter plot title",
+                                                            value = "Change in Methylation Ratio")),
+                                           
+                                           column(2,
+                                                  textInput(inputId = "change_in_methyl_plot_x_text_1",
+                                                            label = "x axis text 1",
+                                                            value = "trt_2 vs trt_1")),
+                                           column(2,
+                                                  textInput(inputId = "change_in_methyl_plot_x_text_2",
+                                                            label = "x axis text 2",
+                                                            value = "trt_3 vs trt_2")),
+                                           column(1,
+                                                  actionButton(inputId = "generate_change_in_methyl_plot",
+                                                               label = "Generate Plot")),
+                                           column(1,
+                                                  downloadButton(outputId = "download_change_in_methyl_plot",
+                                                                 label = "Download Results"))),
+                                         hr(),
+                                         fluidRow(
+                                           column(7,
+                                                  plotlyOutput(outputId = "change_in_methyl_plot")))))
+                              # tabItem DNA end
                               )),
                     
-                    ## --------------- dna vs rna -----------------
+                    ## --------------- DNA vs RNA -----------------
                     tabItem(tabName = "dna_vs_rna",
                             tabsetPanel(
                               tabPanel("Read In data",
@@ -797,15 +915,11 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                             label = "As:")),
                                            column(2,
                                                   actionButton(inputId = "rename_region_rna_vs_dna",
-                                                               label = "Apply"))
-                                         ),
+                                                               label = "Apply"))),
                                          fluidRow(
                                            column(7,
                                                   tags$h4("Inner Joined Table Summary:"),
-                                                  verbatimTextOutput("display_summary_inner_joined_rna_dna")))
-                                         
-                                         
-                                       ),
+                                                  verbatimTextOutput("display_summary_inner_joined_rna_dna")))),
                                        wellPanel(
                                          tags$h3("Starburst Plot"),
                                          fluidRow(
@@ -830,14 +944,12 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          hr(),
                                          fluidRow(
                                            column(7,
-                                                  plotlyOutput(outputId = "starburst_plot"))
-                                                  
-                                         )
-                                       )
-                                       )
-                            )))))
+                                                  plotlyOutput(outputId = "starburst_plot")))))
+                            # tabItem DNA vs RNA end
+                            ))
+                    )))
 
-## ------------- server -------------------
+## ------------- sssssSERVERrrrrr -------------------
 server <- function(input, output, session) {
   ## ------------- upstream ---------------------
   # Specify folder containing FastQ file.
@@ -969,8 +1081,7 @@ server <- function(input, output, session) {
     infile_rna_count <- input$rna_count
     tb <- fread(infile_rna_count$datapath, 
                 skip = 1)
-    tb <- as.data.frame(tb)
-    rv$ct <- tb
+    rv$ct <- as.data.frame(tb)
     
     output$display_rna_count = DT::renderDataTable({
       DT::datatable(rv$ct,
@@ -1041,6 +1152,7 @@ server <- function(input, output, session) {
                  expr = {
                    # prepare selected count table
                    incProgress(0.2, detail = "Preparing Data")
+                   rv$ct[is.na(rv$ct)] <- 0
                    dt <- try(
                      match.ct.info(rv$ct, 
                                    rv$info, 
@@ -1097,22 +1209,12 @@ server <- function(input, output, session) {
                      # heatmap s2s
                      tmp <- dt_log2[, -1]
                      sample_dist <- as.matrix(dist(t(as.matrix(tmp))))
-                     
+
                      rv$expl_heatmap <- pheatmap(sample_dist,
                                                  col = colorRampPalette( rev(brewer.pal(9, "Blues")) )(255))
-                     
-                     output$expl_tst <- renderPlot({
-                       print(rv$expl_heatmap)
-                     })
-                     
-                     p3 <- plot_ly(
-                       x = colnames(sample_dist), 
-                       y = rownames(sample_dist),
-                       z = sample_dist, 
-                       type = "heatmap")
-                     
-                     output$display_heatmap_expl <- renderPlotly({print(p3)})
-                     
+
+                     output$display_heatmap_expl <- renderPlot({print(rv$expl_heatmap)})
+
                      # pca
                      matrix_pca <- t(dt_log2[, -1])
                      matrix_pca <- matrix_pca[, apply(matrix_pca, 2, var) != 0]
@@ -1120,13 +1222,13 @@ server <- function(input, output, session) {
                                        center = TRUE,
                                        scale. = TRUE)
                      df_out <- as.data.frame(res_pca$x)
-                     
+
                      percentage <- round(res_pca$sdev^2 / sum(res_pca$sdev^2) * 100, 2)
                      percentage <- paste( colnames(df_out), "(", paste0( as.character(percentage), "%"), ")")
-                     
+
                      df_out$sample <- colnames(dt_log2)[-1]
                      df_out <- merge(df_out, selected_info, by = "sample")
-                     
+
                      rv$pca <- ggplot(data = df_out,
                                       aes(x = PC1,
                                           y = PC2)) +
@@ -1143,9 +1245,9 @@ server <- function(input, output, session) {
                                  size = 2,
                                  hjust = 0.5) +
                        labs(fill = "legend")
-                     
+
                      p4 <- ggplotly(rv$pca)
-                     
+
                      output$display_pca_expl <- renderPlotly({print(p4)})
                      
                      # end of if else   
@@ -1161,8 +1263,8 @@ server <- function(input, output, session) {
   ## ---------------------- DEGseq  ----------------
   ## Data Preparation
   observeEvent(input$trim,{
-    if (length(input$sample_label_selected_degseq) != 3) {
-      showNotification("Please select three samples in order",
+    if (length(input$sample_label_selected_degseq) != 2) {
+      showNotification("Please select two samples in order",
                        type = "error",
                        duration = 15)
     }else{
@@ -1200,7 +1302,7 @@ server <- function(input, output, session) {
                  value = 0,
                  expr = {
                    # run DEGexp
-                   incProgress(0.2, 
+                   incProgress(0.4, 
                                detail = "Processing trt2-trt1")
                    outputDir <-  file.path(tempdir())
                    rv$ct_degseq_matrix <- as.matrix(rv$ct_degseq)
@@ -1214,9 +1316,9 @@ server <- function(input, output, session) {
                           expCol2 = 2,
                           groupLabel2 = colnames(rv$ct_degseq_matrix)[2],
                           
-                          foldChange = as.numeric(input$fold_change),
+                          foldChange = as.numeric(input$degseq_fold_change),
                           
-                          qValue = as.numeric(input$q_value),
+                          qValue = as.numeric(input$degseq_q_value),
                           thresholdKind = 5, 
                           rawCount = TRUE,
                           normalMethod = "none",
@@ -1225,41 +1327,15 @@ server <- function(input, output, session) {
                    
                    rv$table_trt2_trt1 <- fread(paste(outputDir,"\\output_score.txt", sep = ""))
                    
-                   incProgress(0.2, detail = "Processing trt3-trt2")
-                   DEGexp(geneExpMatrix1 = rv$ct_degseq_matrix,
-                          geneCol1 = 1,
-                          expCol1 = 4,
-                          groupLabel1 = colnames(rv$ct_degseq_matrix)[4],
-                          
-                          geneExpMatrix2 = rv$ct_degseq_matrix,
-                          geneCol2 = 1,
-                          expCol2 = 3,
-                          groupLabel2 = colnames(rv$ct_degseq_matrix)[3],
-                          foldChange = as.numeric(input$fold_change),
-                          qValue = as.numeric(input$q_value),
-                          thresholdKind = 5,
-                          rawCount = TRUE,
-                          normalMethod = "none",
-                          method = "MARS",
-                          outputDir = outputDir)
-                   rv$table_trt3_trt2 <- fread(paste(outputDir,"\\output_score.txt", sep = ""))
-                   
-                   
                    # add mu clr and pch
                    incProgress(0.2, detail = "Displaying Result Tables")
                    
                    rv$table_trt2_trt1 <- add.clm(rv$table_trt2_trt1, 
-                                                 input$q_value, 
-                                                 input$fold_change)
+                                                 input$degseq_q_value, 
+                                                 input$degseq_fold_change)
                    rv$table_trt2_trt1_round <- rv$table_trt2_trt1
                    rv$table_trt2_trt1_round[, c(4:9,11)] <- round(rv$table_trt2_trt1_round[, c(4:9,11)], 2)
                    
-                   
-                   rv$table_trt3_trt2 <- add.clm(rv$table_trt3_trt2, 
-                                                 input$q_value, 
-                                                 input$fold_change)
-                   rv$table_trt3_trt2_round <- rv$table_trt3_trt2
-                   rv$table_trt3_trt2_round[, c(4:9,11)] <- round(rv$table_trt3_trt2_round[, c(4:9,11)], 2)
                    
                    
                    
@@ -1271,36 +1347,30 @@ server <- function(input, output, session) {
                                                                          targets = c(1:4,6:7,11:13)))))
                    })
                    
-                   output$result_table2_degseq = DT::renderDataTable({
-                     DT::datatable(rv$table_trt3_trt2_round,
-                                   filter = "top",
-                                   options = list(scrollX = TRUE,
-                                                  columnDefs = list(list(searchable = FALSE, 
-                                                                         targets = c(1:4,6:7,11:13)))))
-                   })
-                   
-                   
                    # MA plot
                    incProgress(0.2, detail = "Generating MA plot")
                    
-                   rv$ma1_degseq <- ma(rv$table_trt2_trt1, input$q_value,
-                                       input$fold_change) 
+                   rv$ma1_degseq <- ma(rv$table_trt2_trt1, input$degseq_q_value,
+                                       input$degseq_fold_change) 
                    p1 <- ggplotly(rv$ma1_degseq)
                    output$ma1_degseq <- renderPlotly({print(p1)})
                    
-                   rv$ma2_degseq <- ma(rv$table_trt3_trt2, 
-                                       input$q_value,
-                                       input$fold_change)
-                   p2 <- ggplotly(rv$ma2_degseq)
-                   output$ma2_degseq <- renderPlotly({print(p2)})
+                   result <- c("up-regulated DEG",
+                                 "non-significant DEG",
+                                 "down-regulated DEG")
+                     number <- c(sum(rv$table_trt2_trt1$`q-value(Storey et al. 2003)` < as.numeric(input$degseq_q_value) & 
+                                       rv$table_trt2_trt1$`log2(Fold_change) normalized` >= as.numeric(input$degseq_fold_change), 
+                                     na.rm = TRUE),
+                                 nrow(rv$table_trt2_trt1) - sum(rv$table_trt2_trt1$`q-value(Storey et al. 2003)` < as.numeric(input$degseq_q_value) & 
+                                                                   abs(rv$table_trt2_trt1$`log2(Fold_change) normalized`) >= as.numeric(input$degseq_fold_change),
+                                                                 na.rm = TRUE),
+                                 sum(rv$table_trt2_trt1$`q-value(Storey et al. 2003)` < as.numeric(input$degseq_q_value) & 
+                                       rv$table_trt2_trt1$`log2(Fold_change) normalized` <= -as.numeric(input$degseq_fold_change),
+                                     na.rm = TRUE))
+                     degseq_sign_number_tb <- data.frame(result, number)
+                     output$degseq_sign_number <- renderTable(degseq_sign_number_tb)
                    
-                   # kable
-                   rv$kable1 <- kable(table(rv$table_trt2_trt1$clr,
-                                            rv$table_trt2_trt1$pch))
-                   rv$kable2 <- kable(table(rv$table_trt3_trt2$clr,
-                                            rv$table_trt3_trt2$pch))
-                   output$result_kable1 <- renderPrint({rv$kable1})
-                   output$result_kable2 <- renderPrint({rv$kable2})
+                   
                    
                    
                    incProgress(0.2, detail = "Processing 100%")
@@ -1310,7 +1380,7 @@ server <- function(input, output, session) {
   
   # renew MA plot title
   observeEvent(input$ma1_title,{
-    if(!is.null(rv$ma1_degseq)){
+    if (!is.null(rv$ma1_degseq)) {
       rv$ma1_degseq <- rv$ma1_degseq +
         ggtitle(input$ma1_title)
       p1 <- ggplotly(rv$ma1_degseq)
@@ -1319,116 +1389,16 @@ server <- function(input, output, session) {
     }
   })
   
-  observeEvent(input$ma2_title,{
-    if(!is.null(rv$ma2_degseq)){
-      rv$ma2_degseq <- rv$ma2_degseq +
-        ggtitle(input$ma2_title) 
-      p2 <- ggplotly(rv$ma2_degseq)
-      output$ma2_degseq <- renderPlotly({print(p2)})
-    }
-  })
+  # observeEvent(input$ma2_title,{
+  #   if (!is.null(rv$ma2_degseq)) {
+  #     rv$ma2_degseq <- rv$ma2_degseq +
+  #       ggtitle(input$ma2_title) 
+  #     p2 <- ggplotly(rv$ma2_degseq)
+  #     output$ma2_degseq <- renderPlotly({print(p2)})
+  #   }
+  # })
   
-  ## Change in Gene Expression
-  observeEvent(input$generate_result_change,{
-    if (!is.null(rv$table_trt2_trt1)) { 
-      withProgress(message = "Generating results",
-                   value = 0,
-                   expr = {
-                     # run cige function and rename the up.dn.dn.up table
-                     incProgress(0.2, detail = "Preparing data")
-                     ls <- cige(rv$table_trt2_trt1, 
-                                rv$table_trt3_trt2, 
-                                input$q_value,
-                                input$fold_change)
-                     colnames(ls$up.dn_dn.up_table) <- c("gene",
-                                                         paste(input$sample_label_selected_degseq[2],
-                                                               " vs ",
-                                                               input$sample_label_selected_degseq[1]), 
-                                                         paste(input$sample_label_selected_degseq[3],
-                                                               " vs ",
-                                                               input$sample_label_selected_degseq[2]))
-                     
-                     # venn diagram abd sig# table
-                     incProgress(0.2, detail = "venn diagrams")
-                     output$display_venn_diagram1 <- renderPlot({
-                       rv$venn_diagram1 <- draw.pairwise.venn(area1 = length(ls$trt2_trt1_up),
-                                                              area2 = length(ls$trt3_trt2_dn),
-                                                              cross.area = length(ls$up.dn),
-                                                              scaled = TRUE,
-                                                              col = c("green3", 
-                                                                      "firebrick"))
-                     })
-                     output$display_venn_diagram2 <- renderPlot({
-                       rv$venn_diagram2 <- draw.pairwise.venn(area1 = length(ls$trt2_trt1_dn),
-                                                              area2 = length(ls$trt3_trt2_up),
-                                                              cross.area = length(ls$dn.up),
-                                                              scaled = TRUE,
-                                                              col = c("firebrick",
-                                                                      "green3"))
-                     })
-                     
-                     output$change_number <- renderTable({
-                       col1 <- c(paste0(input$sample_label_selected_degseq[2],
-                                        " vs ",
-                                        input$sample_label_selected_degseq[1],
-                                        " up"),
-                                 paste0(input$sample_label_selected_degseq[2],
-                                        " vs ",
-                                        input$sample_label_selected_degseq[1],
-                                        " down"))
-                       col2 <- c(length(ls$trt2_trt1_up), length(ls$trt2_trt1_dn))
-                       col3 <- c(paste0(input$sample_label_selected_degseq[3],
-                                        "-",
-                                        input$sample_label_selected_degseq[2],
-                                        " down"),
-                                 paste0(input$sample_label_selected_degseq[3],
-                                        "-",
-                                        input$sample_label_selected_degseq[2],
-                                        " up"))
-                       col4 <- c(length(ls$trt3_trt2_dn),
-                                 length(ls$trt3_trt2_up))
-                       col5 <- c("intersection", 
-                                 "intersection")
-                       col6 <- c(length(ls$up.dn),
-                                 length(ls$dn.up))
-                       tb <- data.frame(col1,
-                                        col2,
-                                        col3,
-                                        col4,
-                                        col5, 
-                                        col6)
-                       colnames(tb) <- NULL
-                       return(tb)
-                     })
-                     
-                     # display up.dn_dn.up_table
-                     incProgress(0.2, detail = "Preparing DEG table")
-                     rv$up.dn_dn.up_table <- ls$up.dn_dn.up_table
-                     output$display_up.dn_dn.up_table = DT::renderDataTable({
-                       DT::datatable(rv$up.dn_dn.up_table,
-                                     options = list(scrollX = TRUE)) %>%
-                         formatRound(c(2:3), 2)
-                     })
-                     
-                     # two circle heatmap
-                     incProgress(0.2, detail = "Generating two-circle heatmap")
-                     p1 <- two.cl.heat(rv$up.dn_dn.up_table)
-                     rv$two_circle_heatmap <- p1 +
-                       ggtitle(paste("Changes in Gene Expression",
-                                     "q-value >",
-                                     input$q_value,
-                                     "log2foldchange >=",
-                                     input$fold_change))
-                     
-                     output$display_up.dn_dn.up_heatmap <- renderPlot({
-                       print(rv$two_circle_heatmap)
-                     })
-                     
-                     incProgress(0.2, detail = "Processing 100%")
-                     Sys.sleep(1)
-                   })
-    }
-  })
+  
   
   ## ---------------------- DEseq2 -----------------------
   observeEvent(input$generate_dds_from_matrix,{
@@ -1438,6 +1408,7 @@ server <- function(input, output, session) {
     rv$ct_deseq2 <- as.matrix(rv$ct_deseq2)
     rownames(rv$ct_deseq2) <- rv$ct[, input$gene_col_selected_deseq2]
     colnames(rv$ct_deseq2) <- input$sample_label_selected_deseq2
+    rv$ct_deseq2[is.na(rv$ct_deseq2)] <- 0
     
     
     rv$info_deseq2 <- rv$info[match(input$sample_label_selected_deseq2,
@@ -1454,12 +1425,12 @@ server <- function(input, output, session) {
                       choices = colnames(rv$info_deseq2)[-1], 
                       selected = NULL)
     
-    if(length(input$covariate_selected_deseq2) == 1 &
-       input$design_deseq2 == "o_interaction"){
+    if (length(input$covariate_selected_deseq2) == 1 &
+       input$design_deseq2 == "o_interaction") {
       rv$formula <- as.formula(paste("~",
                                      input$covariate_selected_deseq2))
-    }else if(length(input$covariate_selected_deseq2) > 1 &
-             input$design_deseq2 == "combine_level"){
+    }else if (length(input$covariate_selected_deseq2) > 1 &
+             input$design_deseq2 == "combine_level") {
       rv$info_deseq2$group <- factor(apply(rv$info_deseq2[ , input$covariate_selected_deseq2],
                                            1 ,
                                            paste ,
@@ -1477,7 +1448,7 @@ server <- function(input, output, session) {
       )
     })
     
-    if(rv$formula == "incorrect"){
+    if (rv$formula == "incorrect") {
       showNotification("Incorrect design formula",
                        type = "error",
                        duration = 15)
@@ -1486,7 +1457,7 @@ server <- function(input, output, session) {
                                            colData = rv$info_deseq2,
                                            design = rv$formula),
                     silent = TRUE)
-      if(class(rv$dds) == "try-error"){
+      if (class(rv$dds) == "try-error") {
         showNotification(rv$dds[1],
                          type = "error",
                          duration = 15)
@@ -1509,7 +1480,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$run_deseq,{
     
-    if(!is.null(rv$dds_trimmed)){
+    if (!is.null(rv$dds_trimmed)) {
       snowparam <- SnowParam(workers = snowWorkers(), 
                              type = "SOCK")
       register(snowparam, 
@@ -1529,9 +1500,9 @@ server <- function(input, output, session) {
                    })
       
       # update contrast choice
-      if(input$design_deseq2 == "o_interaction"){
+      if (input$design_deseq2 == "o_interaction") {
         contrast <- levels(rv$info_deseq2[,2])
-      }else if(input$design_deseq2 == "combine_level"){
+      }else if (input$design_deseq2 == "combine_level") {
         contrast <- levels(rv$info_deseq2$group)
       }
       updateSelectInput(session,
@@ -1583,7 +1554,7 @@ server <- function(input, output, session) {
                                                        levels = c(46, 3, 4))
                      
                      rv$dtf_res_contrast_round <- rv$dtf_res_contrast
-                     rv$dtf_res_contrast_round[, c(2:7)] <-round(rv$dtf_res_contrast_round[, c(2:7)], 2)
+                     rv$dtf_res_contrast_round[, c(2:7)] <- round(rv$dtf_res_contrast_round[, c(2:7)], 2)
                      
                      output$display_dtf_res_contrast <- DT::renderDataTable({
                        DT::datatable(rv$dtf_res_contrast_round,
@@ -1637,7 +1608,7 @@ server <- function(input, output, session) {
                      
                      # sign gene number
                      result <- c("up-regulated DEG",
-                                 "non DEG",
+                                 "non-significant DEG",
                                  "down-regulated DEG")
                      number <- c(sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
                                        rv$dtf_res_contrast$log2FoldChange >= as.numeric(input$deseq2_fold_change), 
@@ -1646,7 +1617,7 @@ server <- function(input, output, session) {
                                                                    abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change),
                                                                  na.rm = TRUE),
                                  sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
-                                       rv$dtf_res_contrast$log2FoldChange <= - as.numeric(input$deseq2_fold_change),
+                                       rv$dtf_res_contrast$log2FoldChange <= -as.numeric(input$deseq2_fold_change),
                                      na.rm = TRUE))
                      deseq2_sign_number_tb <- data.frame(result, number)
                      output$deseq2_sign_number <- renderTable(deseq2_sign_number_tb)
@@ -1697,7 +1668,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## ---------------------- Download results ----------------
+  ## ---------------------- RNA: download results ----------------
   output$download_expl <- downloadHandler(
     filename = function() {
       paste("exploratory_results", 
@@ -1785,105 +1756,19 @@ server <- function(input, output, session) {
       dev.off()
       
       file_path2 <- paste(input$project_name,
-                          "_degseq_ma2",
-                          ".tiff",
-                          sep = "")
-      tiff(filename = file_path2,
-           height = 6,
-           width = 6,
-           units = 'in',
-           res = 300,
-           compression = "lzw+p")
-      print(rv$ma2_degseq)
-      dev.off()
-      
-      file_path3 <- paste(input$project_name,
                           "degseq_trt2_trt1.csv",
                           sep = "")
-      write.csv(rv$table_trt2_trt1, file_path3, row.names = FALSE)
-      
-      file_path4 <- paste(input$project_name,
-                          "degseq_trt3_trt2.csv",
-                          sep = "")
-      write.csv(rv$table_trt3_trt2, 
-                file_path4, 
-                row.names = FALSE)
+      write.csv(rv$table_trt2_trt1, file_path2, row.names = FALSE)
       
       fs <- c(file_path1,
-              file_path2, 
-              file_path3, 
-              file_path4)
+              file_path2)
       zip(zipfile = fname, 
           files = fs)
     },
     contentType = "application/zip"
   )
   
-  
-  output$download_cige <- downloadHandler(
-    filename = function() {
-      paste("cige_results", 
-            ".zip", 
-            sep = "")
-    },
-    content = function(fname) {
-      
-      file_path1 <- paste(input$project_name,
-                          "cige_sign_gene",
-                          ".csv",
-                          sep = "")
-      write.csv(rv$up.dn_dn.up_table, 
-                file_path1, 
-                row.names = FALSE)
-      
-      
-      file_path2 <- paste(input$project_name,
-                          "cige_heatmap",
-                          ".tiff",
-                          sep = "")
-      tiff(filename = file_path2,
-           height = 8,
-           width = 8,
-           units = 'in',
-           res = 300,
-           compression = "lzw+p")
-      print(rv$two_circle_heatmap)
-      dev.off()
-      
-      file_path3 <- paste(input$project_name,
-                          "venn1.tiff",
-                          sep = "")
-      tiff(filename = file_path3,
-           height = 4,
-           width = 5,
-           units = 'in',
-           res = 300,
-           compression = "lzw+p")
-      grid.draw(rv$venn_diagram1)
-      dev.off()
-      
-      file_path4 <- paste(input$project_name,
-                          "venn2.tiff",
-                          sep = "")
-      tiff(filename = file_path4,
-           height = 4,
-           width = 5,
-           units = 'in',
-           res = 300,
-           compression = "lzw+p")
-      grid.draw(rv$venn_diagram2)
-      dev.off()
-      
-      fs <- c(file_path1, 
-              file_path2,
-              file_path3,
-              file_path4)
-      zip(zipfile = fname,
-          files = fs)
-    },
-    contentType = "application/zip"
-  )
-  
+
   
   output$download_deseq2 <- downloadHandler(
     filename = function() {
@@ -1939,7 +1824,193 @@ server <- function(input, output, session) {
     },
     contentType = "application/zip"
   )
-  # end  
+  
+  ## ----------- change in gene expre analysis ------------
+  observeEvent(input$rna_contrast_1,{
+    infile_rna_contrast_1 <- input$rna_contrast_1
+    tb <- read.table(infile_rna_contrast_1$datapath,
+                     sep = ",",
+                     header = T,
+                     quote = "\"")
+    rv$tb_rna_contrast_1 <- as_tibble(tb)
+    output$display_rna_contrast_1 = DT::renderDataTable({
+      DT::datatable(rv$tb_rna_contrast_1,
+                    options = list(scrollX = TRUE))})
+    updateSelectInput(session,
+                      inputId = "gene_col_selected_rna_contrast_1",
+                      label = "From Contrast 1 select gene column:",
+                      choices = colnames(rv$tb_rna_contrast_1),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "logfold_change_selected_contrast_1",
+                      label = "Select (normalized) logfold change column:",
+                      choices = colnames(rv$tb_rna_contrast_1),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "p_value_selected_rna_contrast_1",
+                      label = "Select P value column:",
+                      choices = colnames(rv$tb_rna_contrast_1),
+                      selected = NULL)})
+  
+  observeEvent(input$rna_contrast_2,{
+    infile_rna_contrast_2 <- input$rna_contrast_2
+    tb <- read.table(infile_rna_contrast_2$datapath,
+                     sep = ",",
+                     header = T,
+                     quote = "\"")
+    rv$tb_rna_contrast_2 <- as_tibble(tb)
+    output$display_rna_contrast_2 = DT::renderDataTable({
+      DT::datatable(rv$tb_rna_contrast_2,
+                    options = list(scrollX = TRUE))})
+    updateSelectInput(session,
+                      inputId = "gene_col_selected_rna_contrast_2",
+                      label = "From Contrast 2 select gene column:",
+                      choices = colnames(rv$tb_rna_contrast_2),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "logfold_change_selected_contrast_2",
+                      label = "Select (normalized) logfold change column:",
+                      choices = colnames(rv$tb_rna_contrast_2),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "p_value_selected_rna_contrast_2",
+                      label = "Select P value column:",
+                      choices = colnames(rv$tb_rna_contrast_2),
+                      selected = NULL)})
+  
+  observeEvent(input$inner_join_2contrasts_rna,{
+    contrast1 <- rv$tb_rna_contrast_1 %>%
+      filter( !!as.name(input$p_value_selected_rna_contrast_1) < input$p_thresh_change_in_gene_expr &
+              abs(!!as.name(input$logfold_change_selected_contrast_1)) >= input$logfold_change_thresh_change_in_gene_expr  ) %>% 
+      select(input$gene_col_selected_rna_contrast_1,
+             input$logfold_change_selected_contrast_1) %>%
+      rename("gene" = input$gene_col_selected_rna_contrast_1,
+             "log_foldchange_1" = input$logfold_change_selected_contrast_1)
+      
+    
+    contrast2 <- rv$tb_rna_contrast_2 %>%
+      filter( !!as.name(input$p_value_selected_rna_contrast_2) < input$p_thresh_change_in_gene_expr &
+              abs(!!as.name(input$logfold_change_selected_contrast_2)) >= input$logfold_change_thresh_change_in_gene_expr  ) %>% 
+      select(input$gene_col_selected_rna_contrast_2,
+             input$logfold_change_selected_contrast_2) %>%
+      rename("gene" = input$gene_col_selected_rna_contrast_2,
+             "log_foldchange_2" = input$logfold_change_selected_contrast_2)
+    
+    rv$joined_2contrasts_rna <- try(
+      inner_join(contrast1, contrast2, by = "gene") %>%
+        filter((log_foldchange_1*log_foldchange_2) < 0),
+      silent = T)
+    
+    if (inherits(rv$joined_2contrasts_rna, "try-error")) {
+      showNotification("Please choose the correct columns and try again",
+                       type = "error",
+                       duration = 15)
+
+    }else{
+      rv$rna_contrast1_up_num <-  nrow(filter(contrast1, log_foldchange_1 > 0))
+      rv$rna_contrast1_down_num <-  nrow(filter(contrast1, log_foldchange_1 < 0))
+      rv$rna_contrast2_up_num <-  nrow(filter(contrast2, log_foldchange_2 > 0))
+      rv$rna_contrast2_down_num <-  nrow(filter(contrast2, log_foldchange_2 < 0))
+      rv$rna_up_donw <- nrow(filter(rv$joined_2contrasts_rna, log_foldchange_1 > 0))
+      rv$rna_down_up <- nrow(filter(rv$joined_2contrasts_rna, log_foldchange_1 < 0))
+      output$display_summary_inner_joined_2contrasts_rna <- renderPrint({summary(rv$joined_2contrasts_rna)})
+    }
+    
+    })
+  
+  observeEvent(input$generate_change_in_gene_expr_plot,{
+    output$display_venn_diagram1_rna <- renderPlot({
+      p1 <- draw.pairwise.venn(area1 = rv$rna_contrast1_up_num,
+                               area2 = rv$rna_contrast2_down_num,
+                               cross.area = rv$rna_up_donw,
+                               scaled = TRUE,
+                               col = c("green3", "firebrick"))
+      rv$venn_diagram1_rna <- grid.arrange(gTree(children = p1), top = "Trt2-Trt1 Up Trt3-Trt2 Down")
+    })
+      
+    output$display_venn_diagram2_rna <- renderPlot({
+      p2 <- draw.pairwise.venn(area1 = rv$rna_contrast1_down_num,
+                                       area2 = rv$rna_contrast2_up_num,
+                                       cross.area = rv$rna_down_up,
+                                       scaled = TRUE,
+                                       col = c("firebrick", "green3"))
+      rv$venn_diagram2_rna <- grid.arrange(gTree(children = p2), top = "Trt2-Trt1 Down Trt3-Trt2 Up")
+    })
+    rv$change_in_gene_expr_heatmap <-  two_column_heatmap(rv$joined_2contrasts_rna,
+                                                          gene,
+                                                          log_foldchange_1,
+                                                          log_foldchange_2,
+                                                          input$change_in_gene_expr_plot_title,
+                                                          input$change_in_gene_expr_plot_x_text_1,
+                                                          input$change_in_gene_expr_plot_x_text_2)
+    
+    p <- ggplotly(rv$change_in_gene_expr_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_gene_expr_plot <- renderPlotly({print(p)})
+  })
+  
+  
+  
+  output$download_change_in_gene_expr_plot <- downloadHandler(
+    filename = function() {
+      paste("change_in_gene_expr_results", ".zip", sep = "")
+    },
+    content = function(fname) {
+      
+      file_path1 <- paste(input$project_name,
+                          "_change_in_gene_expr_plot",
+                          ".tiff",
+                          sep = "")
+      tiff(filename = file_path1,
+           height = 10,
+           width = 10,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      print(rv$change_in_gene_expr_heatmap)
+      dev.off()
+      
+      file_path2 <- paste(input$project_name,
+                          "_change_in_gene_expr_table",
+                          ".csv",
+                          sep = "")
+      write.csv(rv$joined_2contrasts_rna, 
+                file_path2, 
+                row.names = FALSE)
+      file_path3 <- paste(input$project_name,
+                          "_venn_up_donw.tiff",
+                          sep = "")
+      tiff(filename = file_path3,
+           height = 4,
+           width = 5,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      grid.draw(rv$venn_diagram1_rna)
+      dev.off()
+      
+      file_path4 <- paste(input$project_name,
+                          "_venn_donw_up.tiff",
+                          sep = "")
+      tiff(filename = file_path4,
+           height = 4,
+           width = 5,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      grid.draw(rv$venn_diagram2_rna)
+      dev.off()
+      
+      fs <- c(file_path1, 
+              file_path2,
+              file_path3,
+              file_path4)
+      
+      zip(zipfile = fname, 
+          files = fs)
+    },
+    contentType = "application/zip"
+  )
   
   ## ------------  DNA mettyl: Annotate and update selectinput------------
   shinyFileChoose(input = input, 
@@ -2155,7 +2226,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## ----------------------- Heatmap of methyl% on gene level ---------
+  # Heatmap of methyl% on gene level
   observeEvent(input$generate_dna_heat, {
     dt <- rv$dt_dna[!is.na(rv$dt_dna$SYMBOL == "NA"), ]
     
@@ -2336,6 +2407,129 @@ server <- function(input, output, session) {
   #               row.names = FALSE)
   #   })
   
+  ## --------------- Change-in-Methyl Heatmap -------------
+  observeEvent(input$dna_contrast_1,{
+    infile_dna_contrast_1 <- input$dna_contrast_1
+    tb <- read.table(infile_dna_contrast_1$datapath,
+                     sep = ",",
+                     header = T,
+                     quote = "\"")
+    rv$tb_dna_contrast_1 <- as_tibble(tb)
+    output$display_contrast_1 = DT::renderDataTable({
+      DT::datatable(rv$tb_dna_contrast_1,
+                    options = list(scrollX = TRUE))})
+    updateSelectInput(session,
+                      inputId = "gene_col_selected_dna_contrast_1",
+                      label = "From Contrast 1 table select gene column:",
+                      choices = colnames(rv$tb_dna_contrast_1),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "methyl_diff_dna_contrast_1",
+                      label = "Select DNA methylation ratio difference column:",
+                      choices = colnames(rv$tb_dna_contrast_1),
+                      selected = NULL)})
+  
+  observeEvent(input$dna_contrast_2,{
+    infile_dna_contrast_2 <- input$dna_contrast_2
+    tb <- read.table(infile_dna_contrast_2$datapath,
+                     sep = ",",
+                     header = T,
+                     quote = "\"")
+    rv$tb_dna_contrast_2 <- as_tibble(tb)
+    output$display_contrast_2 = DT::renderDataTable({
+      DT::datatable(rv$tb_dna_contrast_2,
+                    options = list(scrollX = TRUE))})
+    updateSelectInput(session,
+                      inputId = "gene_col_selected_dna_contrast_2",
+                      label = "From Contrast 2 table select gene column:",
+                      choices = colnames(rv$tb_dna_contrast_2),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "methyl_diff_dna_contrast_2",
+                      label = "Select DNA methylation ratio difference column:",
+                      choices = colnames(rv$tb_dna_contrast_2),
+                      selected = NULL)})
+  
+  observeEvent(input$inner_join_2contrasts,{
+    contrast1 <- rv$tb_dna_contrast_1 %>%
+      select(input$gene_col_selected_dna_contrast_1,
+             input$methyl_diff_dna_contrast_1) %>%
+      rename("gene" = input$gene_col_selected_dna_contrast_1,
+             "methyl_diff_1" = input$methyl_diff_dna_contrast_1)
+    
+    contrast2 <- rv$tb_dna_contrast_2  %>%
+      select(input$gene_col_selected_dna_contrast_2,
+             input$methyl_diff_dna_contrast_2)  %>%
+      rename("gene" = input$gene_col_selected_dna_contrast_2,
+             "methyl_diff_2" = input$methyl_diff_dna_contrast_2)
+    
+    rv$joined_2contrasts <- try(
+      inner_join(contrast1, contrast2, by = "gene") %>% 
+        filter((methyl_diff_1*methyl_diff_2) < 0),
+      silent = T)
+    
+    if (inherits(rv$joined_2contrasts, "try-error")) {
+      showNotification("Please choose the correct columns and try again",
+                       type = "error",
+                       duration = 15)
+
+    }else{
+      output$display_summary_inner_joined_2contrasts <- renderPrint({summary(rv$joined_2contrasts)})
+    }
+    
+    })
+  
+  observeEvent(input$generate_change_in_methyl_plot,{
+    rv$change_in_methyl_heatmap <-  two_column_heatmap(rv$joined_2contrasts,
+                                                             gene,
+                                                             methyl_diff_1,
+                                                             methyl_diff_2,
+                                                             input$change_in_methyl_plot_title,
+                                                             input$change_in_methyl_plot_x_text_1,
+                                                             input$change_in_methyl_plot_x_text_2)
+    
+    p <- ggplotly(rv$change_in_methyl_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_methyl_plot <- renderPlotly({print(p)})
+  })
+  
+  
+  
+  output$download_change_in_methyl_plot <- downloadHandler(
+    filename = function() {
+      paste("change_in_methyl_results", ".zip", sep = "")
+    },
+    content = function(fname) {
+      
+      file_path1 <- paste(input$project_name,
+                          "_change_in_methyl_plot",
+                          ".tiff",
+                          sep = "")
+      tiff(filename = file_path1,
+           height = 10,
+           width = 10,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      print(rv$change_in_methyl_heatmap)
+      dev.off()
+      
+      file_path2 <- paste(input$project_name,
+                          "_change_in_methyl_table",
+                          ".csv",
+                          sep = "")
+      write.csv(rv$joined_2contrasts, 
+                file_path2, 
+                row.names = FALSE)
+      
+      fs <- c(file_path1,
+              file_path2)
+      zip(zipfile = fname, 
+          files = fs)
+    },
+    contentType = "application/zip"
+  )
+  
   ## -------------  RNA vs DNA: Read in data and update SelectInput ------------
   
   observeEvent(input$rna_sig,{
@@ -2446,7 +2640,7 @@ server <- function(input, output, session) {
     output$starburst_plot <- renderPlotly({print(p1)})
   })
   
-  # -------------- download plot and joined table ------------
+  
   output$download_starburst_plot_and_joined_table <- downloadHandler(
     filename = function() {
       paste("rna_vs_dna_results", ".zip", sep = "")
