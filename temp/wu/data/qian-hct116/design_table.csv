@@ -1,0 +1,4 @@
+Sample Name,Sample Label,condition
+1-Blank.dedup.bam,1,a
+4-Cur-2uM.dedup.bam,4,b
+7-PTX-5-ng-mL.dedup.bam,7,c
