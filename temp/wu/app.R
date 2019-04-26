@@ -1,39 +1,56 @@
-# Reference: https://www.nextflow.io/docs/latest/getstarted.html
-## Shinyapps.io detects and installs packages for you automatically when you call deployApp(). 
-## Do not need, nor should have any calls to install.packages() as below anywhere in your source code.
-## Below installation check is only for local installation
-# # 1. CRAN packages----
-# packages <- c("shinydashboard",
-#               "data.table",
-#               "dplyr",
-#               "DT",
-#               "farver",
-#               "fgsea",
-#               "ggdendro",
-#               "ggplot2",
-#               "gridExtra",
-#               "knitr",
-#               "MASS",
-#               "packrat",
-#               "pheatmap",
-#               "plotly",
-#               "RColorBrewer",
-#               "readxl",
-#               "shiny",
-#               "shinyFiles",
-#               "shinythemes",
-#               "shinyWidgets",
-#               "stringr",
-#               "tibble",
-#               "units",
-#               "VennDiagram",
-#               "zip",
-#               "tidyverse")
-# if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-#   install.packages(setdiff(packages, rownames(installed.packages())))
-# }
+ 
+
+
+# 1. CRAN packages----
+cran_packages <- c("shinydashboard",
+              "data.table",
+              "dplyr",
+              "DT",
+              "farver",
+              "fgsea",
+              "ggdendro",
+              "ggplot2",
+              "gridExtra",
+              "knitr",
+              "MASS",
+              "packrat",
+              "pheatmap",
+              "plotly",
+              "RColorBrewer",
+              "readxl",
+              "shiny",
+              "shinyFiles",
+              "shinythemes",
+              "shinyWidgets",
+              "stringr",
+              "tibble",
+              "units",
+              "VennDiagram",
+              "zip",
+              "tidyverse",
+              "BiocManager")
+
+if (length(setdiff(cran_packages, rownames(installed.packages()))) > 0) {install.packages(setdiff(cran_packages, rownames(installed.packages()))) }
 #
 # # 2. Bioconductor packages----
+bio_packages <- c("BiocInstaller",
+                  "DESeq2",
+                  "DEGseq",
+                  "GOSemSim",
+                  "ChIPseeker",
+                  "TxDb.Mmusculus.UCSC.mm10.knownGene",
+                  "DSS",
+                  "farver",
+                  "units",
+                  "fgsea",
+                  "org.Mm.eg.db",
+                  "dada2"
+                  )
+
+if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocManager::install(setdiff(bio_packages, rownames(installed.packages())), update = F)}
+  
+  
+  
 # if (!requireNamespace("BiocManager", quietly = TRUE))
 #   install.packages("BiocManager")
 # BiocManager::install("BiocInstaller", update = F)
@@ -2677,5 +2694,5 @@ server <- function(input, output, session) {
     contentType = "application/zip"
   )
 }
-
 shinyApp(ui, server)
+
