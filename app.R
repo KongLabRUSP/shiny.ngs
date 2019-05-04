@@ -1,3 +1,22 @@
+# 
+# Author: Meinizi Zheng Email: meinizi.z@hotmail.com 
+# 
+
+# changelog
+
+# v1.1 4-17-2019
+# fixed abbb bug
+
+
+
+
+
+
+
+
+
+
+
 # Reference: https://www.nextflow.io/docs/latest/getstarted.html
 ## Shinyapps.io detects and installs packages for you automatically when you call deployApp(). 
 ## Do not need, nor should have any calls to install.packages() as below anywhere in your source code.
@@ -20,6 +39,7 @@
 #               "RColorBrewer",
 #               "readxl",
 #               "shiny",
+#               "shinyBS",
 #               "shinyFiles",
 #               "shinythemes",
 #               "shinyWidgets",
@@ -27,7 +47,8 @@
 #               "tibble",
 #               "units",
 #               "VennDiagram",
-#               "zip")
+#               "zip",
+#               "tidyverse")
 # if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
 #   install.packages(setdiff(packages, rownames(installed.packages())))
 # }
@@ -54,6 +75,7 @@ options(repos = BiocInstaller::biocinstallRepos())
 library(shinydashboard)
 library(DT)
 library(shiny)
+library(shinyBS)
 library(shinythemes)
 library(shinyFiles)
 library(shinyWidgets)
@@ -105,9 +127,6 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                     dashboardSidebar(sidebarMenu(menuItem(text = "Introduction", 
                                                           tabName = "introduction", 
                                                           icon = icon("dashboard")),
-                                                 menuItem(text = "FASTQ Processing", 
-                                                          tabName = "count", 
-                                                          icon = icon("th")),
                                                  menuItem(text = "RNA-seq Analysis", 
                                                           tabName = "rna-seq_analysis", 
                                                           icon = icon("th")),
@@ -121,7 +140,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                       
                       ## ---------- Introduction ------------
                       tabItem(tabName = "introduction",
-                              h2("Instructions"),
+                              h2("Introduction of the App",
+                                 style = "padding-left: 1em"),
                               p("This interactive web application (NGS pipeline) is developed in R with Shiny to 
                                 1) Align RNA and DNA-seq
                                 2) conduct differential expression (DE) analysis with ",
@@ -130,90 +150,64 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                 a("DESeq2 ",
                                   href = "http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
                                 " based on the provided input data (raw count table and experimental design table).",
-                                style = "padding-left: 0em"),
-                              h3("1. RNA Analysis Data input", 
+                                style = "padding-left: 2em"),
+                              
+                              h3("1. RNA-seq Analysis", 
                                  style = "padding-left: 1em"),
-                              h4("1.1 Experimental Design Table",
-                                 style = "padding-left: 3em"), 
-                              p("This input data contains summarized experimental design information for each sample. 
-                                The first column, Sample Name, will be the same as in Count Table. The Second column, 
-                                Sample Label, will be shown in the result plots and tables. 
-                                A template of the design table can be downloaded ",
+                              
+                              h4("1.1 Read In Data",
+                                 style = "padding-left: 2em"), 
+                              p("This tab read in the data for the explorative analysis and DE analysis tabs. First read in RNA-seq count table, a tab or comma seperated file with which the first row will be deleted. 
+                                Then read in the coresponding design table, a template design_table.csv file can be downloaded",
                                 a("here.", 
-                                  href = "https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y")
-                                , style = "padding-left: 5em")),
-                    
-                    ## -------- FASTQ Processing -------------------
-                    tabItem(tabName = "count",
-                            sidebarPanel(
-                              wellPanel(shinyDirButton(id = "directory", 
-                                                       label = "Select FASTQ Folder", 
-                                                       title = "Please select a folder"),
-                                        radioButtons(inputId = "is_rna",
-                                                     label = "",
-                                                     inline = TRUE,
-                                                     choices = list("RNA" = TRUE, 
-                                                                    "DNA" = FALSE),
-                                                     selected = TRUE),
-                                        radioButtons(inputId = "isSingleEnd",
-                                                     label = "Sequencing:",
-                                                     inline = TRUE,
-                                                     choices = list("Single Ended" = "true", 
-                                                                    "Pair Ended" = "false"),
-                                                     selected = "true"),
-                                        
-                                        fluidRow(
-                                          column(4,
-                                                 actionButton(inputId = "align",
-                                                              label = "Align"))),
-                                        
-                                        fluidRow(
-                                          checkboxInput(inputId = "show_advanced_para",
-                                                        label = "Show Advanced Setting",
-                                                        value = FALSE)),
-                                        conditionalPanel(condition = "input.show_advanced_para == true",
-                                                         textInput(inputId = "job_name",
-                                                                   label = "job name (mmddy + x job)",
-                                                                   value = paste0(substr(format(Sys.Date(),"%m%d%y"),1,4),
-                                                                                  substr(format(Sys.Date(),"%m%d%y"),6,6),
-                                                                                  "1")),
-                                                         selectInput(inputId = "ntasks",
-                                                                     label = "ntasks",
-                                                                     choices = c(1),
-                                                                     multiple = FALSE),
-                                                         selectInput(inputId = "cpus_per_task",
-                                                                     label = "cpus per task",
-                                                                     choices = c(1:32),
-                                                                     multiple = FALSE,
-                                                                     selected = 2),
-                                                         selectInput(inputId = "mem",
-                                                                     label = "RAM",
-                                                                     choices = c(paste0(c(16, 32, 64, 120, 192), "GB")),
-                                                                     multiple = FALSE,
-                                                                     selected = "64GB"),
-                                                         selectInput(inputId = "time",
-                                                                     label = "total run time limit (HH:MM:SS)",
-                                                                     choices = c(paste0(c(2, 4, 6, 8, 12, 24),":00:00")),
-                                                                     multiple = FALSE,
-                                                                     selected = "2:00:00"),
-                                                         textInput(inputId = "output",
-                                                                   label = "STDOUT output file",
-                                                                   value = "slurm.%N.%j.out"),
-                                                         textInput(inputId = "error",
-                                                                   label = "STDERR output file (optional)",
-                                                                   value = "slurm.%N.%j.err"),
-                                                         selectInput(inputId = "partition",
-                                                                     label = "partition",
-                                                                     choices = c("p_kongt_1", "main"),
-                                                                     multiple = FALSE,
-                                                                     selected = "p_kongt_1")))),
-                            mainPanel(tags$h3("File Directory"),
-                                      verbatimTextOutput(outputId = "fileDir"),
-                                      tags$h3("Program"),
-                                      verbatimTextOutput("program"))
-                            # tabItem "count" ends
-                            ),
-                    
+                                  href = "https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y"),
+                                "To tailor the design table based on your count table, do not change the first two column names \'Sample Name\' and \'Sample Label\'.
+                                In the \'Sample Name\' column, enter the sample names from your count table. In the \'Sample Label\' column,
+                                 give unique sample label for each sample (no duplicates in this column). 
+                                \'Sample Name\' is used to mapping design table with count table, \'Sample Label\' is used as choices for user to select samples and to show in the plots. 
+                                User can think it as renaming each Sample Name with Sample Label'.
+                                After read in the design table, the app will match design table with count table using \'Sample Name\', 
+                                a warning message box will show and tell user which row in design table is not found in the count table, if there is any."
+                                ,style = "padding-left: 3em"),
+                              
+                              h4("1.2 Exploratory Analysis",
+                                 style = "padding-left: 2em"), 
+                              p("This tab gives some explorative plots for the samples user selected: a histogram of the log-transformed count to look at the distribution of the count 
+                                and check number genes with zero count; a boxplot of the log-transformed count to compare the spread of each sample;
+                                a heatmap of hierarchy clustering on samples and a PCA plot to show the sample-to-sample distance and help spot potential clustering.",
+                                style = "padding-left: 3em"),
+                              
+                              h4("1.3 DE Analysis: DEGseq",
+                                 style = "padding-left: 2em"), 
+                              p("This tab is developed for different gene expression analysis using", 
+                                a("DEGseq",
+                                  href = "https://bioconductor.org/packages/release/bioc/html/DEGseq.html"),
+                                  ". This package only takes design without replications. Using DEGexp function, 
+                                it performs a pairwise comparison to identify differentially expressed genes and return a result 
+                                table. Based on the result table, along with the adjusted p-value threshold and absolute log foldchage threshold provided by the user, the app also returns an MA plot.",
+                                style = "padding-left: 3em"),
+                              
+                              h4("1.4 DE Analysis: DESeq2",
+                                 style = "padding-left: 2em"), 
+                              p("This tab is developed for different gene expression analysis using", 
+                                a("DESeq2 ",
+                                  href = "http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
+                                ". It uses DESeqDataSetFromMatrix function to generate a DESeqDataSet object which is then used in function DESeq to estimate size factors,
+                                dispersion, and then a Negative Binomila GLM, with which the Wald test is perfomred to calcuated the p value. Note, experiments without 
+                                replicates do not allow for estimation of the dispersion of counts around the expected value for each group, which is critical for differential expression analysis. 
+                                Analysis without replicates was deprecated in v1.20 and is no longer supported since v1.22. User then could extracts a result table from a DESeq analysis which gives
+                                base means across samples, log2 fold changes, standard errors, test statistics, p-values and adjusted p-values. Based on the extracted result table, along with the 
+                                adjusted p-value threshold and absolute log foldchage threshold provided by the user, the app also returns an MA plot.",
+                                style = "padding-left: 3em"),
+                              
+                              h4("1.5 Change In Gene Expression",
+                                 style = "padding-left: 2em"), 
+                              p("This tab takes in two result tables (contrast 1 and contrast 2) from Differential Gene Expression Analysis and returns a two-column heatmap 
+                                of change in gene expression of contrast 1 and contrast 2. User has to select the gene column, the expression difference (log foldchnage) column, the p-value column and enter
+                                the p-value threshold and absolute log foldchage threshold. The App filters out the significant genes based on the provided threshold seperately for each 
+                                contrast table and then inner join the two tables to plot the heatmap.",
+                                style = "padding-left: 3em")),
+
                     ## ---------------- RNA seq analysis -----------------
                     tabItem(tabName = "rna-seq_analysis",
                             tabsetPanel(
@@ -221,27 +215,39 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               tabPanel("Read In Data", 
                                        wellPanel(
                                          fluidRow(
-                                           column(4,
+                                           column(5,
                                                   textInput(inputId = "project_name",
-                                                            label = "Enter project name (no space) below:",
-                                                            value = "Enter project name"))),
+                                                            label = "Enter project name below:",
+                                                            value = "Enter project name")),
+                                           column(4,
+                                                  bsButton("q1", label = "", icon = icon("question"),style = "info", size = "extra-small"),
+                                                  bsTooltip(id = "q1", title = "Will be used in the filenames of the downloaded files", placement = "right"))
+                                           ),
                                          fluidRow(
-                                           column(6,
+                                           column(5,
                                                   fileInput(inputId = "rna_count",
                                                             label = "Select Count Table File",
-                                                            accept = c(".csv")))),
+                                                            accept = c(".csv"))),
+                                           column(4,
+                                                  bsButton("q2", label = "", icon = icon("question"),style = "info", size = "extra-small"),
+                                                  bsTooltip(id = "q2", title = "Take in tab or comma sepearted file, and delete the first row", placement = "right"))
+                                           ),
                                          fluidRow(
-                                           column(6,
+                                           column(5,
                                                   fileInput(inputId = "rna_info",
                                                             label = "Select Design File",
-                                                            accept = c(".csv"))))),
+                                                            accept = c(".csv"))),
+                                           column(4,
+                                                  bsButton("q3", label = "", icon = icon("question"),style = "info", size = "extra-small"),
+                                                  bsTooltip(id = "q3", title = "Refer to Introduction 1.1 to downloaded and fill the design table template. Warning if value of Sample Name is not found in count table", placement = "right"))
+                                           )),
                                        
                                        
                                        wellPanel(
                                          tags$h4("View Count Table:"),
                                          DT::dataTableOutput(outputId = 'display_rna_count')),
                                        wellPanel(
-                                         tags$h4("View Sample Information Table:"),
+                                         tags$h4("View Design Table:"),
                                          DT::dataTableOutput(outputId = 'display_rna_info'))),
                               
                               
@@ -258,16 +264,17 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                               selected = NULL)),
                                            column(5,
                                                   selectInput(inputId = "sample_label_selected_expl",
-                                                              label = "Select samples (same order as in histogram and boxplot):",
+                                                              label = "Select samples (same order as you want them in the plots):",
                                                               choices = NULL,
                                                               multiple = TRUE,
                                                               selected = NULL)),
                                            column(3,
                                                   selectInput(inputId = "covariate_selected_expl",
-                                                              label = "Group by (select one):",
+                                                              label = "Group by:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL))),
+                                                              selected = NULL),
+                                                  bsTooltip(id = "covariate_selected_expl", title = "Applied to the fill color in boxplot and PCA plot"))),
                                          fluidRow(
                                            column(2,
                                                   actionButton(inputId = "generate_result_expl",
@@ -310,12 +317,13 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                                       choices = NULL,
                                                                       multiple = FALSE,
                                                                       selected = NULL)),
-                                                   column(4,
+                                                   column(5,
                                                           selectInput(inputId = "sample_label_selected_degseq",
                                                                       label = "Select 2 Samples in order: trt1(denominator) trt2(numerator)",
                                                                       choices = NULL,
                                                                       multiple = TRUE,
-                                                                      selected = NULL)),
+                                                                      selected = NULL),
+                                                          bsTooltip(id = "sample_label_selected_degseq", title = "Refer to Introduction 1.3")),
                                                    column(4,
                                                           textInput(inputId = "row_sum",
                                                                     label = "Remove if sum across 2 samples is <",
@@ -335,21 +343,26 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          tags$h3("DE Analysis"),
                                          fluidRow(
                                            column(3,
-                                                  selectInput(inputId = "degseq_q_value",
-                                                              label = "q-value(Storey et al. 2003) <",
-                                                              choices = c(0.01, 0.05, 0.1, 0.25),
-                                                              selected = 0.01)),
+                                                  numericInput(inputId = "degseq_q_value",
+                                                               label = "Set q-value(Storey et al. 2003) <",
+                                                               value = 0.01,
+                                                               min = 0,
+                                                               max = 1,
+                                                               step = 0.01),
+                                                  bsTooltip(id = "degseq_q_value", title = "Applied to MA plot and the Signature column of the result table, showing signaficant or not. All genes from trimmed table will be included in the result table")),
                                            column(3,
-                                                  selectInput(inputId = "degseq_fold_change",
-                                                              label = "Obs(log2(fold change)) >=",
-                                                              choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-                                                              selected = 1)),
+                                                  numericInput(inputId = "degseq_fold_change",
+                                                              label = "Set Obs(log foldchange) >=",
+                                                              value = 1,
+                                                              min = 0),
+                                                  bsTooltip(id = "degseq_fold_change", title = "Applied only to MA plot together with the q-value")),
                                            column(3,
                                                   actionButton(inputId = "run_DEGexp",
                                                                label = "RUN DEGexp")),
                                            column(3,
                                                   downloadButton(outputId = "download_degseq",
-                                                                 label = "Download Results"))),
+                                                                 label = "Download Results"),
+                                                  bsTooltip(id = "download_degseq", title = "Including result table and MA plot"))),
                                          wellPanel(tags$h4("Result Table:"),
                                            DT::dataTableOutput(outputId = "result_table1_degseq")),
                                          
@@ -357,9 +370,10 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                    fluidRow(column(3,
                                                                    textInput(inputId = "ma1_title",
                                                                              label = "Enter MA plot title below:",
-                                                                             value = ""))),
+                                                                             value = ""),
+                                                                   bsTooltip(id = "ma1_title", title = "Plot will update automatically"))),
                                                    fluidRow(column(6,
-                                                                   plotlyOutput(outputId = "ma1_degseq")),
+                                                                   plotOutput(outputId = "ma1_degseq")),
                                                             column(6,
                                                                    tableOutput(outputId = "degseq_sign_number")))))),
                               
@@ -382,26 +396,19 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                               label = "Select samples for DE analysis",
                                                               choices = NULL,
                                                               multiple = TRUE,
-                                                              selected = NULL)),
+                                                              selected = NULL),
+                                                  bsTooltip(id = "sample_label_selected_deseq2", title = "Refer to Introduction 1.4")),
                                            column(3,
                                                   textInput(inputId = "row_sum_deseq2",
                                                             label = "Remove if total across samples is <",
                                                             value = "10")),
                                            column(2,
                                                   selectInput(inputId = "covariate_selected_deseq2",
-                                                              label = "Select covariate(s)",
+                                                              label = "Select one covariate",
                                                               choices = NULL,
-                                                              multiple = TRUE,
+                                                              multiple = FALSE,
                                                               selected = NULL))),
                                          fluidRow(
-                                           column(3,
-                                                  radioButtons(inputId = "design_deseq2",
-                                                               label = "Select Design Formula:",
-                                                               choices = list("Simple Comparison" = "o_interaction",
-                                                                              "Combine Level" = "combine_level"
-                                                                              # "With Interaction" = "w_interaction", 
-                                                               ),
-                                                               selected = NULL)),
                                            column(2,
                                                   actionButton(inputId = "generate_dds_from_matrix",
                                                                label = "Generate DESeqDataSet From Matrix"))),
@@ -415,15 +422,19 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                        wellPanel(
                                          tags$h3("DE Analysis"),
                                          fluidRow(column(4,
-                                                         selectInput(inputId = "deseq2_p_value",
+                                                         numericInput(inputId = "deseq2_p_value",
                                                                      label = "FDR adjusted p-value <",
-                                                                     choices = c(0.01, 0.05, 0.1, 0.25),
-                                                                     selected = 0.01)),
+                                                                     value = 0.01,
+                                                                     min = 0,
+                                                                     max = 1,
+                                                                     step = 0.01),
+                                                         bsTooltip(id = "deseq2_p_value", title = "Applied only to MA plot. All genes from trimmed table will be included in the result table")),
                                                   column(4,
-                                                         selectInput(inputId = "deseq2_fold_change",
-                                                                     label = "Obs(log2(fold change)) >=",
-                                                                     choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-                                                                     selected = 1)),
+                                                         numericInput(inputId = "deseq2_fold_change",
+                                                                     label = "Set Obs(log foldchange) >=",
+                                                                     value = 1,
+                                                                     min = 0),
+                                                         bsTooltip(id = "deseq2_fold_change", title = "Applied only to MA plot")),
                                                   column(3,
                                                          actionButton(inputId = "run_deseq",
                                                                       label = "Run DESeq"))),
@@ -444,7 +455,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                                       label = "Extract Results")),
                                                   column(2,
                                                          downloadButton(outputId = "download_deseq2",
-                                                                        label = "Download Results"))),
+                                                                        label = "Download Results"),
+                                                         bsTooltip(id = "download_deseq2", title = "Including result table, MA plot and count plot if generated"))),
                                          fluidRow(verbatimTextOutput(outputId = "deseq2_results_dir")),
                                          
                                          wellPanel(tags$h4("Result Table:"),
@@ -453,7 +465,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                    fluidRow(column(3,
                                                                    textInput(inputId = "enter_deseq2_ma_title",
                                                                              label = "Enter MA plot title below:",
-                                                                             value = ""))),
+                                                                             value = ""),
+                                                                   bsTooltip(id = "enter_deseq2_ma_title", title = "Plot will update automatically"))),
                                                    fluidRow(column(6,
                                                                    plotOutput(outputId = "display_deseq2_ma")),
                                                             column(6,
@@ -464,7 +477,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                                              label = "Enter one gene name:")),
                                                             column(3,
                                                                    selectInput(inputId = "intgroup",
-                                                                               label = "Select interested covariate(s) :",
+                                                                               label = "Select one covariate :",
                                                                                choices = NULL,
                                                                                multiple = TRUE,
                                                                                selected = NULL)),
@@ -474,17 +487,17 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                    fluidRow(column(6,
                                                                    plotOutput(outputId = "deseq2_count_plot")))))),
                               ## ----------- change in gene expression analysis----------------
-                              tabPanel("Change in Gene Expression",
+                              tabPanel("Change In Gene Expression",
                                        wellPanel(
                                          fluidRow(
                                            column(6,
                                                   fileInput(inputId = "rna_contrast_1",
-                                                            label = "Select RNA File of contrast 1",
+                                                            label = "Select result table from DE analysis for contrast 1",
                                                             accept = c(".csv")))),
                                          fluidRow(
                                            column(6,
                                                   fileInput(inputId = "rna_contrast_2",
-                                                            label = "Select RNA File of contrast 1",
+                                                            label = "Select result table from DE analysis for contrast 2",
                                                             accept = c(".csv"))))),
                                        wellPanel(
                                          tags$h4("View Contrast 1 Table:"),
@@ -495,55 +508,86 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                        
                                        wellPanel(
                                          tags$h3("Data Preparation"),
+                                         
+                                         hr(),
+                                         tags$h4("From contrast 1:"),
                                          fluidRow(
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "gene_col_selected_rna_contrast_1",
-                                                              label = "From Contrast 1 select gene column:",
+                                                              label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL)),
-                                           column(3,
+                                                              selected = NULL))
+                                           ),
+                                         fluidRow(
+                                           column(4,
                                                   selectInput(inputId = "logfold_change_selected_contrast_1",
-                                                              label = "Select (normalized) logfold change column:",
+                                                              label = "Select Logfold change column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
+                                                  numericInput(inputId = "logfold_change_thresh_change_in_gene_expr_contrast1",
+                                                              label = "Set Obs(log foldchange) >=",
+                                                              min = 0,
+                                                              value = 1))
+                                         ),
+                                         fluidRow(
+                                           column(4,
                                                   selectInput(inputId = "p_value_selected_rna_contrast_1",
                                                               label = "Select P value column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL))),
+                                                              selected = NULL)),
+                                           column(4,
+                                                  numericInput(inputId = "p_thresh_change_in_gene_expr_contrast1",
+                                                              label = "Set P value <",
+                                                              min = 0, 
+                                                              max = 1,
+                                                              value = 0.05,
+                                                              step = 0.01))
+                                         ),
+                                         hr(),
+                                         tags$h4("From contrast 2:"),
                                          fluidRow(
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "gene_col_selected_rna_contrast_2",
-                                                              label = "From Contrast 2 select gene column:",
+                                                              label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL)),
-                                           column(3,
+                                                              selected = NULL))
+                                           
+                                        ),
+                                         fluidRow(
+                                           column(4,
                                                   selectInput(inputId = "logfold_change_selected_contrast_2",
-                                                              label = "Select (normalized) logfold change column:",
+                                                              label = "Select Logfold change column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
+                                                  numericInput(inputId = "logfold_change_thresh_change_in_gene_expr_contrast2",
+                                                              label = "Set Obs(log foldchange) >=",
+                                                              min = 0,
+                                                              value = 1))
+                                         ),
+                                        fluidRow(
+                                          column(4,
                                                   selectInput(inputId = "p_value_selected_rna_contrast_2",
                                                               label = "Select P value column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL))),
+                                                              selected = NULL)),
+                                           column(4,
+                                                  numericInput(inputId = "p_thresh_change_in_gene_expr_contrast2",
+                                                              label = "Set P value <",
+                                                              min = 0, 
+                                                              max = 1,
+                                                              value = 0.05,
+                                                              step = 0.01))
+                                        ),
+                                        hr(),
                                          fluidRow(
-                                           column(3,
-                                                  selectInput(inputId = "p_thresh_change_in_gene_expr",
-                                                              label = "p value <",
-                                                              choices = c(0.01, 0.05, 0.1, 0.25),
-                                                              selected = 0.01)),
-                                           column(3,
-                                                  selectInput(inputId = "logfold_change_thresh_change_in_gene_expr",
-                                                              label = "Obs(log2(fold change)) >=",
-                                                              choices = c(0.3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-                                                              selected = 1)),
                                            column(3,
                                                   actionButton(inputId = "inner_join_2contrasts_rna",
                                                                label = "Inner Join Contrast 1 and Contrast 2 table"))),
@@ -557,22 +601,27 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                            column(3,
                                                   textInput(inputId = "change_in_gene_expr_plot_title",
                                                             label = "Enter plot title",
-                                                            value = "Change in Gene Expression")),
+                                                            value = "Change in Gene Expression"),
+                                                  bsTooltip(id = "change_in_gene_expr_plot_title", title = "Plot will update automatically")),
                                            
                                            column(2,
                                                   textInput(inputId = "change_in_gene_expr_plot_x_text_1",
-                                                            label = "x axis text 1",
-                                                            value = "trt_2 vs trt_1")),
+                                                            label = "Enter x axis label 1",
+                                                            value = "trt_2 vs trt_1"),
+                                                  bsTooltip(id = "change_in_gene_expr_plot_x_text_1", title = "Plot will update automatically")),
                                            column(2,
                                                   textInput(inputId = "change_in_gene_expr_plot_x_text_2",
-                                                            label = "x axis text 2",
-                                                            value = "trt_3 vs trt_2")),
+                                                            label = "Enter x axis label 2",
+                                                            value = "trt_3 vs trt_2"),
+                                                  bsTooltip(id = "change_in_gene_expr_plot_x_text_2", title = "Plot will update automatically")),
                                            column(2,
                                                   actionButton(inputId = "generate_change_in_gene_expr_plot",
-                                                               label = "Generate Heatmap")),
+                                                               label = "Generate Heatmap"),
+                                                  bsTooltip(id = "generate_change_in_gene_expr_plot", title = "From filtered and inner-joined table created above")),
                                            column(2,
                                                   downloadButton(outputId = "download_change_in_gene_expr_plot",
-                                                                 label = "Download Results"))),
+                                                                 label = "Download Results"),
+                                                  bsTooltip(id = "download_change_in_gene_expr_plot", title = "Including inner-joined table, venn diagrams and heatmap", trigger = "hover"))),
                                          hr(),
                                          fluidRow(
                                            column(5,
@@ -687,7 +736,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                           plotlyOutput(outputId = "dna_heat2"))))),
                               
                               ## ------------ DSS ---------------
-                              tabPanel("DE Analysis: DSS",
+                              tabPanel("DMR Analysis: DSS",
                                        wellPanel(
                                          tags$h3("Data Preparation"),
                                          tags$h4("Instruction"),
@@ -763,7 +812,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          DT::dataTableOutput(outputId = "dss_dml_tb"))),
                               
                               ## ------------ change in methyl ratio analysis ---------------
-                              tabPanel("Change in Methylation Ratio",
+                              tabPanel("Change In Methylation Ratio",
                                        wellPanel(
                                          fluidRow(
                                            column(6,
@@ -951,129 +1000,12 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
 
 ## ------------- sssssSERVERrrrrr -------------------
 server <- function(input, output, session) {
-  ## ------------- upstream ---------------------
-  # Specify folder containing FastQ file.
-  # NOTE: all the files in the folder will be passed to the pipeline
   rv <- reactiveValues()
-  
   shinyDirChoose(input = input, 
                  id = "directory", 
                  roots = volumes, 
                  session = session, 
                  restrictions = system.file(package = "base"))
-  
-  
-  output$fileDir <- renderPrint({
-    parseDirPath(roots = volumes, 
-                 selection = input$directory)
-  })
-  
-  output$program <- renderPrint({
-    rv$pgmrna <- paste0("sbatch --job-name=",
-                        input$job_name,
-                        " --ntasks=",
-                        input$ntasks,
-                        " --cpus-per-taks=",
-                        input$cpus_per_task,
-                        " --mem=",
-                        input$mem,
-                        " --time=",
-                        input$time,
-                        " --output=",
-                        input$output,
-                        " --error=",
-                        input$error,
-                        ifelse(input$partition == "main", 
-                               "",
-                               paste0(" --partition=",
-                                      input$partition)),
-                        " module use /projects/community/modulefiles", 
-                        " module load nextflow",
-                        " export NXF_CLUSTER_SEED=$(shuf -i 0-16777216 -n 1)",
-                        " export NXF_OPTS=\'-Xms1g -Xmx4g\'", 
-                        " export NF_Work_Dir=\"/scratch/${USER}/NFWorkDir/${PWD}/work\"",
-                        " export IS_SINGLE=\"",
-                        input$isSingleEnd,
-                        "\"",
-                        " export IN_FILES=\"",
-                        ifelse(input$isSingleEnd == "true",
-                               paste0(parseDirPath(roots = volumes, 
-                                                   selection = input$directory),
-                                      "/*.gz\""),
-                               paste0(parseDirPath(roots = volumes, 
-                                                   selection = input$directory),
-                                      "/*_R{1,2}*.fastq.gz\"")),
-                        " mkdir -p $NF_Work_Dir",
-                        " date",
-                        " SECONDS=0",
-                        " srun nextflow run rna-seq.nf --SingleEnd=$IS_SINGLE --reads=$IN_FILES -w $NF_Work_Dir -with-trace -with-report ${SLURM_JOB_PARTITION}_${SLURM_JOB_NODELIST}_${SLURM_JOB_ID}_RNA-seq-nf.html \\-with-timeline ${SLURM_JOB_PARTITION}_${SLURM_JOB_NODELIST}_${SLURM_JOB_ID}_RNA-seq-nf-timeline.html -resume",
-                        " date",
-                        " duration=$SECONDS",
-                        " echo \"$(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed.\"",
-                        " touch \"${SLURM_JOB_PARTITION}-${SLURM_JOB_NODELIST}-${SLURM_JOB_ID}-$(($duration / 3600 ))h_$(($(($duration % 3600)) / 60 ))m_$(($duration % 60))s.time\""
-    )
-    
-    rv$pgmdna <- paste0("sbatch --job-name=",
-                        input$job_name,
-                        " --ntasks=",
-                        input$ntasks,
-                        " --cpus-per-taks=",
-                        input$cpus_per_task,
-                        " --mem=",
-                        input$mem,
-                        " --time=",
-                        input$time,
-                        " --output=",
-                        input$output,
-                        " --error=",
-                        input$error,
-                        ifelse(input$partition == "main", 
-                               "",
-                               paste0(" --partition=",
-                                      input$partition)),
-                        " module use /projects/community/modulefiles", 
-                        " module load nextflow",
-                        " export NXF_OPTS=\'-Xms1g -Xmx4g\'",
-                        " export NF_Work_Dir=\"/scratch/${USER}/NFWorkDir/${PWD}/work\"",
-                        " mkdir -p $NF_Work_Dir",
-                        " IS_SINGLE=\"",
-                        input$isSingleEnd,
-                        "\"",
-                        " IN_FILES=\"",
-                        ifelse(input$isSingleEnd == "true",
-                               paste0(parseDirPath(roots = volumes, 
-                                                   selection = input$directory),
-                                      "/*.gz\""),
-                               paste0(parseDirPath(roots = volumes, 
-                                                   selection = input$directory),
-                                      "/*_R{1,2}*.fastq.gz\"")),
-                        # add the code inbetween?
-                        " mkdir -p $NF_Work_Dir",
-                        " date",
-                        " SECONDS=0",
-                        " srun nextflow run methyl-seq.nf -w $NF_Work_Dir --SingleEnd=$IS_SINGLE --reads=$IN_FILES -with-trace -with-report DNA-methyl.html  -with-timeline DNA-methyl-timeline.html -resume",
-                        " EXIT_STATUS=$?",
-                        " date",
-                        " echo \"$(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed.\"",
-                        " touch \"${SLURM_JOB_PARTITION}-${SLURM_JOB_NODELIST}-${SLURM_JOB_ID}-$(($duration / 3600 ))h_$(($(($duration % 3600)) / 60 ))m_$(($duration % 60))s.time\"",
-                        " if  [ $EXIT_STATUS  -eq  0 ]; then echo \" Pipeline completed. Removing WorkDir files\" rm -rf $NF_Work_Dir else echo \"Pipeline not completed.\" fi" 
-    )
-    
-    cat(
-      ifelse(input$is_rna == TRUE,
-             paste('RNA Program:',
-                   rv$pgmrna,
-                   sep = '\n'),
-             paste('DNA Program:',
-                   rv$pgmdna, 
-                   sep = '\n'))
-    )
-  })
-  
-  observeEvent(input$align, {
-    # trigger nextflow to run rv$pgmrna or rv$pgmdna
-    
-  })
   
   ## ------------  RNA seq: Read in data and update SelectInput -------------
   
@@ -1099,6 +1031,12 @@ server <- function(input, output, session) {
       DT::datatable(rv$info,
                     options = list(scrollX = TRUE))})
     
+    if (any(!(rv$info$`Sample Name` %in% colnames(rv$ct)))) {
+      showNotification(paste("Design table row", paste(which(!(rv$info$`Sample Name` %in% colnames(rv$ct))), collapse = ","), "\'sample name is not found in count table"),
+                      type = "error",
+                      duration = NULL)
+    } else {
+      
     updateSelectInput(session, 
                       inputId = "gene_col_selected_expl", 
                       label = "Select gene column", 
@@ -1138,9 +1076,10 @@ server <- function(input, output, session) {
                       selected = NULL)
     updateSelectInput(session,
                       inputId = "covariate_selected_deseq2",
-                      label = "Select Covariate(s)",
+                      label = "Select one covariate",
                       choices = colnames(rv$info)[c(-1,-2)], 
                       selected = NULL)
+    }
     
   })
   
@@ -1162,7 +1101,7 @@ server <- function(input, output, session) {
                    if (class(dt) == "try-error") {
                      showNotification(dt[1],
                                       type = "error",
-                                      duration = 15)
+                                      duration = NULL)
                      
                    }else{
                      # selected design table
@@ -1266,7 +1205,7 @@ server <- function(input, output, session) {
     if (length(input$sample_label_selected_degseq) != 2) {
       showNotification("Please select two samples in order",
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
     }else{
       dt <- try(
         match.ct.info(rv$ct, 
@@ -1277,7 +1216,7 @@ server <- function(input, output, session) {
       if (class(dt) == "try-error") {
         showNotification(dt[1],
                          type = "error",
-                         duration = 15)
+                         duration = NULL)
         
       }else{
         # trim 
@@ -1298,7 +1237,12 @@ server <- function(input, output, session) {
   
   ## DE analysis
   observeEvent(input$run_DEGexp,{
-    withProgress(message = "Running DEGexp",
+    if (is.null(rv$ct_degseq)) {
+      showNotification("Please create a count table in Data Preparation first",
+                       type = "error",
+                       duration = NULL)
+    } else {
+      withProgress(message = "Running DEGexp",
                  value = 0,
                  expr = {
                    # run DEGexp
@@ -1327,33 +1271,50 @@ server <- function(input, output, session) {
                    
                    rv$table_trt2_trt1 <- fread(paste(outputDir,"\\output_score.txt", sep = ""))
                    
-                   # add mu clr and pch
+                   
                    incProgress(0.2, detail = "Displaying Result Tables")
                    
-                   rv$table_trt2_trt1 <- add.clm(rv$table_trt2_trt1, 
-                                                 input$degseq_q_value, 
-                                                 input$degseq_fold_change)
+                   
                    rv$table_trt2_trt1_round <- rv$table_trt2_trt1
-                   rv$table_trt2_trt1_round[, c(4:9,11)] <- round(rv$table_trt2_trt1_round[, c(4:9,11)], 2)
-                   
-                   
-                   
-                   
+                   rv$table_trt2_trt1_round[, c(4:9)] <- round(rv$table_trt2_trt1_round[, c(4:9)], 2)
                    output$result_table1_degseq = DT::renderDataTable({
                      DT::datatable(rv$table_trt2_trt1_round,
                                    filter = "top",
                                    options = list(scrollX = TRUE,
                                                   columnDefs = list(list(searchable = FALSE, 
-                                                                         targets = c(1:4,6:7,11:13)))))
+                                                                         targets = c(1:4,6:7)))))
                    })
                    
                    # MA plot
                    incProgress(0.2, detail = "Generating MA plot")
+                   # add mu clr and pch
+                   dt_ma <- as.tibble(rv$table_trt2_trt1) %>% 
+                     mutate(mu = case_when(value1 != 0 & value2 != 0 ~ (log2(value1) + log2(value2))/2,
+                                           value1 != 0 & value2 == 0 ~ (log2(value1) + log2(value2 + 1))/2,
+                                           value1 == 0 & value2 != 0 ~ (log2(value1 + 1) + log2(value2))/2,
+                                           TRUE ~ (log2(value1 + 1) + log2(value2 + 1))/2)) %>% 
+                     mutate(clr = case_when( `q-value(Storey et al. 2003)` < input$degseq_q_value & 
+                                               abs(`log2(Fold_change) normalized`) >= input$degseq_fold_change ~ "red",
+                                             `q-value(Storey et al. 2003)` < input$degseq_q_value & 
+                                               abs(`log2(Fold_change) normalized`) < input$degseq_fold_change ~ "purple",
+                                             TRUE ~ "black")) %>% 
+                     mutate(clr = factor(clr, levels = c("black", "purple", "red"))) %>% 
+                     mutate(pch = case_when(`q-value(Storey et al. 2003)` < input$degseq_q_value & 
+                                               abs(`log2(Fold_change) normalized`) >= input$degseq_fold_change ~ 4,
+                                             `q-value(Storey et al. 2003)` < input$degseq_q_value & 
+                                               abs(`log2(Fold_change) normalized`) < input$degseq_fold_change ~ 3,
+                                             TRUE ~ 46)) %>% 
+                     mutate(pch = factor(pch, levels = c(46, 3, 4))) %>% 
+                     rename(q_value = `q-value(Storey et al. 2003)`, log_foldchange = `log2(Fold_change) normalized`) %>% 
+                     select(mu, clr, pch, log_foldchange)
+                     
                    
-                   rv$ma1_degseq <- ma(rv$table_trt2_trt1, input$degseq_q_value,
-                                       input$degseq_fold_change) 
-                   p1 <- ggplotly(rv$ma1_degseq)
-                   output$ma1_degseq <- renderPlotly({print(p1)})
+                   rv$ma1_degseq <- ma(dt.tb = dt_ma,
+                                       q_value_thresh = input$degseq_q_value, 
+                                       fold_change_thresh = input$degseq_fold_change,
+                                       tt = input$ma1_title) 
+                   
+                   output$ma1_degseq <- renderPlot({print(rv$ma1_degseq)})
                    
                    result <- c("up-regulated DEG",
                                  "non-significant DEG",
@@ -1376,6 +1337,7 @@ server <- function(input, output, session) {
                    incProgress(0.2, detail = "Processing 100%")
                    Sys.sleep(1)
                  })
+    }
   })
   
   # renew MA plot title
@@ -1383,76 +1345,48 @@ server <- function(input, output, session) {
     if (!is.null(rv$ma1_degseq)) {
       rv$ma1_degseq <- rv$ma1_degseq +
         ggtitle(input$ma1_title)
-      p1 <- ggplotly(rv$ma1_degseq)
-      
-      output$ma1_degseq <- renderPlotly({print(p1)})
+      output$ma1_degseq <- renderPlot({print(rv$ma1_degseq)})
     }
   })
   
-  # observeEvent(input$ma2_title,{
-  #   if (!is.null(rv$ma2_degseq)) {
-  #     rv$ma2_degseq <- rv$ma2_degseq +
-  #       ggtitle(input$ma2_title) 
-  #     p2 <- ggplotly(rv$ma2_degseq)
-  #     output$ma2_degseq <- renderPlotly({print(p2)})
-  #   }
-  # })
-  
-  
   
   ## ---------------------- DEseq2 -----------------------
-  observeEvent(input$generate_dds_from_matrix,{
-    rv$sample_name_list_deseq2 <- rv$info$`Sample Name`[match(input$sample_label_selected_deseq2, 
+  
+      
+  observeEvent(input$generate_dds_from_matrix,{  
+    
+      
+      # tailor the count tb
+      rv$sample_name_list_deseq2 <- rv$info$`Sample Name`[match(input$sample_label_selected_deseq2, 
                                                               rv$info$`Sample Label`)]
-    rv$ct_deseq2 <- rv$ct[, rv$sample_name_list_deseq2]
-    rv$ct_deseq2 <- as.matrix(rv$ct_deseq2)
-    rownames(rv$ct_deseq2) <- rv$ct[, input$gene_col_selected_deseq2]
-    colnames(rv$ct_deseq2) <- input$sample_label_selected_deseq2
-    rv$ct_deseq2[is.na(rv$ct_deseq2)] <- 0
-    
-    
-    rv$info_deseq2 <- rv$info[match(input$sample_label_selected_deseq2,
+      rv$ct_deseq2 <- as.matrix(rv$ct[, rv$sample_name_list_deseq2])
+      rv$ct_deseq2[is.na(rv$ct_deseq2)] <- 0
+      rownames(rv$ct_deseq2) <- rv$ct[, input$gene_col_selected_deseq2]
+      colnames(rv$ct_deseq2) <- input$sample_label_selected_deseq2
+      
+      # tailor the design tb
+      if (length(input$covariate_selected_deseq2) != 1) {
+          showNotification("Please select one covariate",
+                         type = "error",
+                         duration = NULL)
+      }else{
+       rv$info_deseq2 <- rv$info[match(input$sample_label_selected_deseq2,
                                     rv$info$`Sample Label`), 
                               c("Sample Label",
                                 input$covariate_selected_deseq2)]
-    colnames(rv$info_deseq2) <- c("sample", 
+       colnames(rv$info_deseq2) <- c("sample", 
                                   input$covariate_selected_deseq2)
-    rv$info_deseq2[-1] <- lapply(rv$info_deseq2[-1], factor)
-    
-    updateSelectInput(session, 
-                      inputId = "intgroup", 
-                      label = "Select interested covariate(s):", 
-                      choices = colnames(rv$info_deseq2)[-1], 
-                      selected = NULL)
-    
-    if (length(input$covariate_selected_deseq2) == 1 &
-       input$design_deseq2 == "o_interaction") {
-      rv$formula <- as.formula(paste("~",
-                                     input$covariate_selected_deseq2))
-    }else if (length(input$covariate_selected_deseq2) > 1 &
-             input$design_deseq2 == "combine_level") {
-      rv$info_deseq2$group <- factor(apply(rv$info_deseq2[ , input$covariate_selected_deseq2],
-                                           1 ,
-                                           paste ,
-                                           collapse = "_" ))
-      rv$formula <- as.formula("~ group")
-    }else{
-      rv$formula <- "incorrect"
-    } 
-    
-    output$display_formula <- renderPrint({
-      cat(
-        paste0("The design formula: ", 
-               paste(as.character(rv$formula), 
-                     collapse = " "))
-      )
-    })
-    
-    if (rv$formula == "incorrect") {
-      showNotification("Incorrect design formula",
-                       type = "error",
-                       duration = 15)
-    }else{
+       rv$info_deseq2[-1] <- lapply(rv$info_deseq2[-1], factor) 
+       
+       # design formula
+       rv$formula <- as.formula(paste("~",input$covariate_selected_deseq2))
+       output$display_formula <- renderPrint({
+       cat(paste0("The design formula: ", paste(as.character(rv$formula), collapse = " ")))})
+      }
+      
+      
+      
+      
       rv$dds <- try(DESeqDataSetFromMatrix(countData = rv$ct_deseq2,
                                            colData = rv$info_deseq2,
                                            design = rv$formula),
@@ -1460,23 +1394,16 @@ server <- function(input, output, session) {
       if (class(rv$dds) == "try-error") {
         showNotification(rv$dds[1],
                          type = "error",
-                         duration = 15)
-        output$trim_left_number <- renderPrint({
-          cat(rv$dds)
-        })
+                         duration = NULL)
+        output$trim_left_number <- renderPrint({cat(rv$dds)})
         
       }else{
         rv$dds_trimmed <- rv$dds[rowSums(counts(rv$dds)) >= as.numeric(input$row_sum_deseq2), ]
         output$trim_left_number <- renderPrint({
-          cat(
-            paste(nrow(counts(rv$dds_trimmed)),
-                  "genes left, down from",
-                  nrow(counts(rv$dds)),
-                  "genes"))
-        })
-      } 
-    }
+          cat(paste(nrow(counts(rv$dds_trimmed)), "genes left, down from", nrow(counts(rv$dds)), "genes"))})}
   })
+  
+  
   
   observeEvent(input$run_deseq,{
     
@@ -1489,134 +1416,115 @@ server <- function(input, output, session) {
       withProgress(message = "Running DESeq", 
                    value = 0,
                    expr = {
-                     incProgress(0.2, detail = "Processing 20%")
-                     incProgress(0.3, detail = "Processing 50%")
-                     incProgress(0.2, detail = "Processing 70%")
-                     rv$dds_res <- DESeq(rv$dds_trimmed,
-                                         fitType = "local",
-                                         parallel = FALSE) # TRUE
-                     incProgress(0.3, detail = "Processing 100%")
+                     incProgress(0.25, detail = "Processing 25%")
+                     incProgress(0.25, detail = "Processing 50%")
+                     
+                     rv$dds_res <- try(
+                       DESeq(rv$dds_trimmed, fitType = "local", parallel = FALSE),
+                       silent = TRUE
+                     )
+                     
+                     if (class(rv$dds_res) == "try-error") {
+                       showNotification(rv$dds_res[1],
+                                        type = "error",
+                                        duration = NULL)
+                     }else{
+                       contrast <- levels(rv$info_deseq2[,2])
+                       updateSelectInput(session,
+                                         inputId = "comp1",
+                                         label = "Select numerator level for the fold change",
+                                         choices = contrast,
+                                         selected = NULL)
+                       updateSelectInput(session,
+                                         inputId = "comp2",
+                                         label = "Select denominator level for the fold change",
+                                         choices = contrast,
+                                         selected = NULL)
+                     }
+                     
+                     incProgress(0.25, detail = "Processing 75%")
+                     incProgress(0.25, detail = "Processing 100%")
                      Sys.sleep(1)
                    })
       
-      # update contrast choice
-      if (input$design_deseq2 == "o_interaction") {
-        contrast <- levels(rv$info_deseq2[,2])
-      }else if (input$design_deseq2 == "combine_level") {
-        contrast <- levels(rv$info_deseq2$group)
-      }
-      updateSelectInput(session,
-                        inputId = "comp1",
-                        label = "Select numerator level for the fold change",
-                        choices = contrast,
-                        selected = NULL)
-      
-      updateSelectInput(session,
-                        inputId = "comp2",
-                        label = "Select denominator level for the fold change",
-                        choices = contrast,
-                        selected = NULL)
-      
     }else{
-      showNotification("please generate dds object from matrix first",
+      showNotification("Please generate dds object from matrix first",
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
     }  
   })
   
   observeEvent(input$extract_results_deseq2,{
-    if (!is.null(rv$dds_res)) {
+    if (is.null(rv$dds_res)) {
+      showNotification("Please Run DESeq first before you extract result",
+                       type = "error",
+                       duration = NULL)
+    }else if (input$comp1 == input$comp2) {
+      showNotification("Please select two different samples for comparison",
+                       type = "error",
+                       duration = NULL)
+    }else{
       withProgress(message = "Extracting results with contrast", 
                    value = 0,
                    expr = {
                      # extract result
                      incProgress(0.2, detail = "Preparing result table")
-                     if (input$design_deseq2 == "o_interaction") {
-                       contrast <- c(input$covariate_selected_deseq2, input$comp1, input$comp2)
-                     }else if (input$design_deseq2 == "combine_level") {
-                       contrast <- c("group", input$comp1, input$comp2)
-                     }
-                     rv$dds_res_contrast <- results(rv$dds_res,
-                                                    contrast = contrast)
+                     
+                     contrast <- c(input$covariate_selected_deseq2, input$comp1, input$comp2)
+                     
+                     rv$dds_res_contrast <- results(rv$dds_res, contrast = contrast)
                      rv$dtf_res_contrast <- data.frame(gene = rownames(rv$dds_res_contrast),
                                                        do.call("cbind", 
                                                                rv$dds_res_contrast@listData))
                      
-                     rv$dtf_res_contrast$clr <- "black"
-                     rv$dtf_res_contrast$clr[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value)] <- "purple"
-                     rv$dtf_res_contrast$clr[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
-                                               abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change)] <- "red"
-                     rv$dtf_res_contrast$pch <- 46
-                     rv$dtf_res_contrast$pch[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value)] <- 3
-                     rv$dtf_res_contrast$pch[rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
-                                               abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change)] <- 4
-                     rv$dtf_res_contrast$pch <- factor(rv$dtf_res_contrast$pch,
-                                                       levels = c(46, 3, 4))
-                     
                      rv$dtf_res_contrast_round <- rv$dtf_res_contrast
                      rv$dtf_res_contrast_round[, c(2:7)] <- round(rv$dtf_res_contrast_round[, c(2:7)], 2)
-                     
+
                      output$display_dtf_res_contrast <- DT::renderDataTable({
                        DT::datatable(rv$dtf_res_contrast_round,
                                      filter = "top",
                                      options = list(scrollX = TRUE,
-                                                    columnDefs = list(list(searchable = FALSE, 
-                                                                           targets = c(1:2, 4:6, 8:9)))))
-                     })
+                                                    columnDefs = list(list(searchable = FALSE,
+                                                                           targets = c(1:2, 4:6)))))})
+                     
+                    
                      
                      # MA plot
                      incProgress(0.2, detail = "Preparing MA plot")
-                     rv$deseq2_ma <- ggplot(rv$dtf_res_contrast,
-                                            aes(x = log(baseMean + 1),
-                                                y = `log2FoldChange`,
-                                                colour = clr,
-                                                shape = pch)) +
-                       scale_shape_manual(name = "Legend:",
-                                          values = c(46, 3, 4),
-                                          labels = c("No significance",
-                                                     paste("p-Value < ", 
-                                                           as.numeric(input$deseq2_p_value)),
-                                                     paste("p-Value < ", 
-                                                           as.numeric(input$deseq2_p_value), 
-                                                           " & abs(log2) >= ", 
-                                                           as.numeric(input$deseq2_fold_change)))) +
-                       scale_color_manual(name = "Legend:",
-                                          values = c("black",
-                                                     "purple",
-                                                     "red"),
-                                          labels = c("No significance",
-                                                     paste("p-Value < ", 
-                                                           as.numeric(input$deseq2_p_value)),
-                                                     paste("p-Value < ", 
-                                                           as.numeric(input$deseq2_p_value), 
-                                                           " & abs(log2) >= ", 
-                                                           as.numeric(input$deseq2_fold_change)))) +
-                       geom_hline(yintercept = c(-as.numeric(input$deseq2_fold_change), 
-                                                 as.numeric(input$deseq2_fold_change)),
-                                  lty = 2) +
-                       theme(panel.grid.major = element_blank(),
-                             panel.grid.minor = element_blank(),
-                             panel.background = element_blank(),
-                             axis.line = element_line(colour = "black"),
-                             plot.title = element_text(hjust = 0.5),
-                             legend.position = "top") + 
-                       geom_point() +
-                       labs(x = "log2(BaseMean + 1)", y = "log2FoldChange")
+                     dt_ma <- rv$dtf_res_contrast %>%
+                       mutate(mu = log(baseMean + 1)) %>%
+                       mutate(log_foldchange = log2FoldChange) %>%
+                       mutate(clr = case_when( padj < input$deseq2_p_value &
+                                               abs(log_foldchange) >= input$deseq2_fold_change ~ "red",
+                                               padj < input$deseq2_p_value &
+                                               abs(log_foldchange) < input$deseq2_fold_change ~ "purple",
+                                             TRUE ~ "black")) %>%
+                       mutate(clr = factor(clr, levels = c("black", "purple", "red"))) %>%
+                       mutate(pch = case_when(padj < input$deseq2_p_value &
+                                               abs(log_foldchange) >= input$deseq2_fold_change ~ 4,
+                                               padj < input$deseq2_p_value &
+                                               abs(log_foldchange) < input$deseq2_fold_change ~ 3,
+                                             TRUE ~ 46)) %>%
+                       mutate(pch = factor(pch, levels = c(46, 3, 4))) %>%
+                       select(mu, clr, pch, log_foldchange)
+
+                     rv$deseq2_ma <- ma(dt_ma, input$deseq2_p_value, input$deseq2_fold_change, input$enter_deseq2_ma_title)
+
                      output$display_deseq2_ma <- renderPlot({
                        print(rv$deseq2_ma)
                      })
-                     
+
                      # sign gene number
                      result <- c("up-regulated DEG",
                                  "non-significant DEG",
                                  "down-regulated DEG")
-                     number <- c(sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
-                                       rv$dtf_res_contrast$log2FoldChange >= as.numeric(input$deseq2_fold_change), 
+                     number <- c(sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) &
+                                       rv$dtf_res_contrast$log2FoldChange >= as.numeric(input$deseq2_fold_change),
                                      na.rm = TRUE),
-                                 nrow(rv$dtf_res_contrast) - sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                 nrow(rv$dtf_res_contrast) - sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) &
                                                                    abs(rv$dtf_res_contrast$log2FoldChange) >= as.numeric(input$deseq2_fold_change),
                                                                  na.rm = TRUE),
-                                 sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) & 
+                                 sum(rv$dtf_res_contrast$padj < as.numeric(input$deseq2_p_value) &
                                        rv$dtf_res_contrast$log2FoldChange <= -as.numeric(input$deseq2_fold_change),
                                      na.rm = TRUE))
                      deseq2_sign_number_tb <- data.frame(result, number)
@@ -1627,12 +1535,12 @@ server <- function(input, output, session) {
                    })
       # renew MA plot
       observeEvent(input$enter_deseq2_ma_title,{
-        rv$deseq2_ma <- rv$deseq2_ma + 
+        if (!is.null(rv$deseq2_ma)) {
+          rv$deseq2_ma <- rv$deseq2_ma +
           ggtitle(input$enter_deseq2_ma_title)
-        # p1 <- ggplotly(rv$deseq2_ma)
         output$display_deseq2_ma <- renderPlot({
-          print(rv$deseq2_ma)
-        })
+          print(rv$deseq2_ma)})
+        }
       })
     }
   })
@@ -1640,13 +1548,13 @@ server <- function(input, output, session) {
   ## generate count plot
   observeEvent(input$generate_count_plot,{
     if (is.null(input$enter_gene_name) | is.null(input$intgroup)) {
-      showNotification("Please enter one gene name and select interested covariate(s)",
+      showNotification("Please enter one gene name and Select one covariate",
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
     }else if (input$enter_gene_name %in% rownames(rv$dds_trimmed)  == FALSE ) {
       showNotification("Please enter the exact correct gene name",
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
     }else{
       dt <- plotCounts(rv$dds_res, gene = input$enter_gene_name,
                        intgroup = input$intgroup, 
@@ -1838,12 +1746,12 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
     updateSelectInput(session,
                       inputId = "gene_col_selected_rna_contrast_1",
-                      label = "From Contrast 1 select gene column:",
+                      label = "Select gene column:",
                       choices = colnames(rv$tb_rna_contrast_1),
                       selected = NULL)
     updateSelectInput(session,
                       inputId = "logfold_change_selected_contrast_1",
-                      label = "Select (normalized) logfold change column:",
+                      label = "Select Logfold change column:",
                       choices = colnames(rv$tb_rna_contrast_1),
                       selected = NULL)
     updateSelectInput(session,
@@ -1864,12 +1772,12 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
     updateSelectInput(session,
                       inputId = "gene_col_selected_rna_contrast_2",
-                      label = "From Contrast 2 select gene column:",
+                      label = "Select gene column:",
                       choices = colnames(rv$tb_rna_contrast_2),
                       selected = NULL)
     updateSelectInput(session,
                       inputId = "logfold_change_selected_contrast_2",
-                      label = "Select (normalized) logfold change column:",
+                      label = "Select Logfold change column:",
                       choices = colnames(rv$tb_rna_contrast_2),
                       selected = NULL)
     updateSelectInput(session,
@@ -1879,32 +1787,48 @@ server <- function(input, output, session) {
                       selected = NULL)})
   
   observeEvent(input$inner_join_2contrasts_rna,{
-    contrast1 <- rv$tb_rna_contrast_1 %>%
-      filter( !!as.name(input$p_value_selected_rna_contrast_1) < input$p_thresh_change_in_gene_expr &
-              abs(!!as.name(input$logfold_change_selected_contrast_1)) >= input$logfold_change_thresh_change_in_gene_expr  ) %>% 
+    
+    contrast1 <- try(
+      rv$tb_rna_contrast_1 %>%
+      filter( !!as.name(input$p_value_selected_rna_contrast_1) < input$p_thresh_change_in_gene_expr_contrast1 &
+              abs(!!as.name(input$logfold_change_selected_contrast_1)) >= input$logfold_change_thresh_change_in_gene_expr_contrast1  ) %>% 
       select(input$gene_col_selected_rna_contrast_1,
              input$logfold_change_selected_contrast_1) %>%
       rename("gene" = input$gene_col_selected_rna_contrast_1,
-             "log_foldchange_1" = input$logfold_change_selected_contrast_1)
-      
+             "log_foldchange_1" = input$logfold_change_selected_contrast_1),
+      silent = TRUE
+    )
     
-    contrast2 <- rv$tb_rna_contrast_2 %>%
-      filter( !!as.name(input$p_value_selected_rna_contrast_2) < input$p_thresh_change_in_gene_expr &
-              abs(!!as.name(input$logfold_change_selected_contrast_2)) >= input$logfold_change_thresh_change_in_gene_expr  ) %>% 
+    if (inherits(contrast1, "try-error")) {
+      showNotification("Please choose the correct columns for contrast1 and try again",
+                       type = "error",
+                       duration = NULL)}  
+    
+    contrast2 <- try(
+      rv$tb_rna_contrast_2 %>%
+      filter( !!as.name(input$p_value_selected_rna_contrast_2) < input$p_thresh_change_in_gene_expr_contrast2 &
+              abs(!!as.name(input$logfold_change_selected_contrast_2)) >= input$logfold_change_thresh_change_in_gene_expr_contrast2  ) %>% 
       select(input$gene_col_selected_rna_contrast_2,
              input$logfold_change_selected_contrast_2) %>%
       rename("gene" = input$gene_col_selected_rna_contrast_2,
-             "log_foldchange_2" = input$logfold_change_selected_contrast_2)
+             "log_foldchange_2" = input$logfold_change_selected_contrast_2),
+      silent = TRUE
+    )
+    
+    if (inherits(contrast2, "try-error")) {
+      showNotification("Please choose the correct columns for contrast2 and try again",
+                       type = "error",
+                       duration = NULL)}  
     
     rv$joined_2contrasts_rna <- try(
       inner_join(contrast1, contrast2, by = "gene") %>%
         filter((log_foldchange_1*log_foldchange_2) < 0),
-      silent = T)
+      silent = TRUE)
     
     if (inherits(rv$joined_2contrasts_rna, "try-error")) {
-      showNotification("Please choose the correct columns and try again",
+      showNotification(rv$joined_2contrasts_rna[1],
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
 
     }else{
       rv$rna_contrast1_up_num <-  nrow(filter(contrast1, log_foldchange_1 > 0))
@@ -1918,14 +1842,21 @@ server <- function(input, output, session) {
     
     })
   
+  
   observeEvent(input$generate_change_in_gene_expr_plot,{
-    output$display_venn_diagram1_rna <- renderPlot({
+    if (nrow(rv$joined_2contrasts_rna) == 0) {
+      showNotification("There is no genes left to plot. Please reset your threshold.",
+                       type = "error",
+                       duration = NULL)
+    } else {
+      output$display_venn_diagram1_rna <- renderPlot({
       p1 <- draw.pairwise.venn(area1 = rv$rna_contrast1_up_num,
                                area2 = rv$rna_contrast2_down_num,
                                cross.area = rv$rna_up_donw,
                                scaled = TRUE,
-                               col = c("green3", "firebrick"))
-      rv$venn_diagram1_rna <- grid.arrange(gTree(children = p1), top = "Trt2-Trt1 Up Trt3-Trt2 Down")
+                               col = c("green3", "firebrick"),
+                               cex = rep(2, 3))
+      rv$venn_diagram1_rna <- grid.arrange(gTree(children = p1), top = textGrob("Trt2-Trt1 Up Trt3-Trt2 Down",gp = gpar(fontsize = 18)))
     })
       
     output$display_venn_diagram2_rna <- renderPlot({
@@ -1933,8 +1864,9 @@ server <- function(input, output, session) {
                                        area2 = rv$rna_contrast2_up_num,
                                        cross.area = rv$rna_down_up,
                                        scaled = TRUE,
-                                       col = c("firebrick", "green3"))
-      rv$venn_diagram2_rna <- grid.arrange(gTree(children = p2), top = "Trt2-Trt1 Down Trt3-Trt2 Up")
+                                       col = c("firebrick", "green3"),
+                                       cex = rep(2, 3))
+      rv$venn_diagram2_rna <- grid.arrange(gTree(children = p2), top = textGrob("Trt2-Trt1 Down Trt3-Trt2 Up",gp = gpar(fontsize = 18)))
     })
     rv$change_in_gene_expr_heatmap <-  two_column_heatmap(rv$joined_2contrasts_rna,
                                                           gene,
@@ -1947,8 +1879,39 @@ server <- function(input, output, session) {
     p <- ggplotly(rv$change_in_gene_expr_heatmap) %>% 
       layout(height = 800, width = 800)
     output$change_in_gene_expr_plot <- renderPlotly({print(p)})
+    }
   })
   
+  # update change_in_gene_expr_plot title and x tick
+  observeEvent(input$change_in_gene_expr_plot_title,{
+    if (!is.null(rv$change_in_gene_expr_heatmap)) {
+      rv$change_in_gene_expr_heatmap <- rv$change_in_gene_expr_heatmap +
+        ggtitle(input$change_in_gene_expr_plot_title)
+      p <- ggplotly(rv$change_in_gene_expr_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_gene_expr_plot <- renderPlotly({print(p)})
+    }
+  })
+  
+  observeEvent(input$change_in_gene_expr_plot_x_text_1,{
+    if (!is.null(rv$change_in_gene_expr_heatmap)) {
+      rv$change_in_gene_expr_heatmap <- rv$change_in_gene_expr_heatmap +
+        scale_x_discrete(labels = c(input$change_in_gene_expr_plot_x_text_1, input$change_in_gene_expr_plot_x_text_2))
+      p <- ggplotly(rv$change_in_gene_expr_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_gene_expr_plot <- renderPlotly({print(p)})
+    }
+  })
+  
+  observeEvent(input$change_in_gene_expr_plot_x_text_2,{
+    if (!is.null(rv$change_in_gene_expr_heatmap)) {
+      rv$change_in_gene_expr_heatmap <- rv$change_in_gene_expr_heatmap +
+        scale_x_discrete(labels = c(input$change_in_gene_expr_plot_x_text_1, input$change_in_gene_expr_plot_x_text_2))
+      p <- ggplotly(rv$change_in_gene_expr_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_gene_expr_plot <- renderPlotly({print(p)})
+    }
+  })
   
   
   output$download_change_in_gene_expr_plot <- downloadHandler(
@@ -2126,7 +2089,7 @@ server <- function(input, output, session) {
     if (class(rv$dt_dna2) == "try-error") {
       showNotification(rv$dds[1],
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
     }else{
       output$test_dna <- renderPrint( cat(paste0("Removed ",
                                                  nrow(rv$dt_dna) - nrow(rv$dt_dna1),
@@ -2471,7 +2434,7 @@ server <- function(input, output, session) {
     if (inherits(rv$joined_2contrasts, "try-error")) {
       showNotification("Please choose the correct columns and try again",
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
 
     }else{
       output$display_summary_inner_joined_2contrasts <- renderPrint({summary(rv$joined_2contrasts)})
@@ -2601,7 +2564,7 @@ server <- function(input, output, session) {
     if (inherits(rv$joined_rna_dna, "try-error")) {
       showNotification("Please choose the correct columns and try again",
                        type = "error",
-                       duration = 15)
+                       duration = NULL)
 
     }else{
       rv$joined_rna_dna %>%

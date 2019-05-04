@@ -1,34 +1,28 @@
 # ma plot
-# input: a data table returned by function add.clm(), q_value, fold_change
+# input: a data table (with column mu, log_folchange, q_value, clr and pch), q_value_column, fold_change_column, q_value_thresh, fold_change_thresh, plot title
 # output: a MA plot, ggplot object
 
-ma <- function(dt.tb, q_value, fold_change){
+ma <- function(dt.tb, q_value_thresh, fold_change_thresh, tt){
+  
+  
   p <- ggplot(dt.tb,
               aes(x = mu,
-                  y = `log2(Fold_change) normalized`,
+                  y = log_foldchange,
                   colour = clr,
                   shape = pch)) +
     scale_shape_manual(name = "Legend:",
                        labels = c("No significance",
-                                  paste("p-Value < ",
-                                        as.numeric(q_value)),
-                                  paste("p-Value < ",
-                                        as.numeric(q_value),
-                                        " & abs(log2) >= ",
-                                        as.numeric(fold_change))),
+                                  paste("p-Value < ", q_value_thresh),
+                                  paste("p-Value < ", q_value_thresh, " & abs(log2) >= ", fold_change_thresh)),
                        values = c(46, 3, 4)) +
     scale_color_manual(name = "Legend:",
                        values = c("black",
                                   "purple",
                                   "red"),
                        labels = c("No significance",
-                                  paste("p-Value < ",
-                                        as.numeric(q_value)),
-                                  paste("p-Value < ",
-                                        as.numeric(q_value),
-                                        " & abs(log2) >= ",
-                                        as.numeric(fold_change)))) +
-    geom_hline(yintercept = c(-as.numeric(fold_change), as.numeric(fold_change)),
+                                  paste("p-Value < ", q_value_thresh),
+                                  paste("p-Value < ", q_value_thresh, " & abs(log2) >= ", fold_change_thresh))) +
+    geom_hline(yintercept = c(-fold_change_thresh, fold_change_thresh),
                lty = 2) +
     theme(panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
@@ -37,7 +31,9 @@ ma <- function(dt.tb, q_value, fold_change){
           plot.title = element_text(hjust = 0.5),
           legend.position = "top") +
     geom_point() +
-    labs(x = "log2Mean", y = "log2FoldChange")
+    labs(x = "log2Mean", 
+         y = "log2FoldChange",
+         title = tt)
   
   return(p)
   
@@ -118,11 +114,11 @@ two_column_heatmap <- function(df,
     as.tibble() %>% 
     mutate(gene_reorder = fct_reorder(!!gene_col, !!diff_1)) %>% 
     select(gene_reorder, !!diff_1, !!diff_2)
-  colnames(df) <- c("gene_reorder", x_text_1, x_text_2)
+  #colnames(df) <- c("gene_reorder", x_text_1, x_text_2)
   df <- df %>% 
     gather(key = "contrast", value = "diff", -gene_reorder)
   
-  
+ 
   
   ggplot(data = df,
        aes(x = contrast, 
@@ -130,6 +126,7 @@ two_column_heatmap <- function(df,
   geom_tile(aes(fill = diff), color = "white") +
   scale_fill_gradient2(low = "red", high = "green", mid = "grey", midpoint = 0) +
   labs(title = title) +
+  scale_x_discrete(labels = c(x_text_1, x_text_2)) +  
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),

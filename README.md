@@ -15,3 +15,7 @@
 ## Daily Logs<a name="logs"></a>
 ### 01/30/2019
 * Repository created
+
+### 04/15/2019
+* App now can plot RNA vs DNA starburst panel. 
+* App extracted change in gene expression into an independent tab. 
