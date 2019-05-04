@@ -19,3 +19,6 @@
 ### 04/15/2019
 * App now can plot RNA vs DNA starburst panel. 
 * App extracted change in gene expression into an independent tab. 
+
+### 05/04/2019
+* Added Introduction and hover tooltips for RNA-seq Analysis part.
