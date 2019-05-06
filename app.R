@@ -3,7 +3,7 @@
 # 
 
 # changelog
-
+# May 6, 2019 R Ww.  added scripts for first time installation of needed packages.
 # v1.1 4-17-2019
 # fixed abbb bug
 
@@ -68,6 +68,58 @@
 # BiocManager::install("fgsea", version = "3.8")
 # BiocManager::install("org.Mm.eg.db", version = "3.8")
 
+
+### below added by R Wu
+# 1. CRAN packages----
+cran_packages <- c("shinydashboard",
+                   "data.table",
+                   "dplyr",
+                   "DT",
+                   "farver",
+                   "fgsea",
+                   "ggdendro",
+                   "ggplot2",
+                   "gridExtra",
+                   "knitr",
+                   "MASS",
+                   "packrat",
+                   "pheatmap",
+                   "plotly",
+                   "RColorBrewer",
+                   "readxl",
+                   "shiny",
+                   "shinyFiles",
+                   "shinythemes",
+                   "shinyWidgets",
+                   "stringr",
+                   "tibble",
+                   "units",
+                   "VennDiagram",
+                   "zip",
+                   "tidyverse",
+                   "shinyBS",
+                   "BiocManager")
+
+if (length(setdiff(cran_packages, rownames(installed.packages()))) > 0) {install.packages(setdiff(cran_packages, rownames(installed.packages()))) }
+#
+# # 2. Bioconductor packages----
+bio_packages <- c("BiocInstaller",
+                  "DESeq2",
+                  "DEGseq",
+                  "GOSemSim",
+                  "ChIPseeker",
+                  "TxDb.Mmusculus.UCSC.mm10.knownGene",
+                  "DSS",
+                  "farver",
+                  "units",
+                  "fgsea",
+                  "org.Mm.eg.db",
+                  "dada2")
+
+if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocManager::install(setdiff(bio_packages, rownames(installed.packages())), update = F)}
+
+### end addition by R Wu
+
 options(stringsAsFactors = FALSE)
 options(shiny.maxRequestSize = 30*1024^2) 
 options(repos = BiocInstaller::biocinstallRepos())
@@ -79,9 +131,6 @@ library(shinyBS)
 library(shinythemes)
 library(shinyFiles)
 library(shinyWidgets)
-
-
-
 library(data.table)
 library(ggdendro)
 library(ggplot2)
