@@ -50,7 +50,7 @@
 #               "zip",
 #               "tidyverse")
 # if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-#   install.packages(setdiff(packages, rownames(installed.packages())))
+#   install.packages(the setdiff(packages, rownames(installed.packages())))
 # }
 #
 # # 2. Bioconductor packages----
@@ -98,6 +98,7 @@ cran_packages <- c("shinydashboard",
                    "zip",
                    "tidyverse",
                    "shinyBS",
+                   # "NewPackage", # uncomment this line and change the name in duoble quotes to add more package. Add more lines if desire
                    "BiocManager")
 
 if (length(setdiff(cran_packages, rownames(installed.packages()))) > 0) {install.packages(setdiff(cran_packages, rownames(installed.packages()))) }
@@ -114,6 +115,7 @@ bio_packages <- c("BiocInstaller",
                   "units",
                   "fgsea",
                   "org.Mm.eg.db",
+                  # "NewPackage", # uncomment this line and change the name in duoble quotes to add more package. Add more lines if desire
                   "dada2")
 
 if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocManager::install(setdiff(bio_packages, rownames(installed.packages())), update = F)}
