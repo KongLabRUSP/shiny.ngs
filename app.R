@@ -143,13 +143,18 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               h2("Introduction of the App",
                                  style = "padding-left: 1em"),
                               p("This interactive web application (NGS pipeline) is developed in R with Shiny to 
-                                1) Align RNA and DNA-seq
-                                2) conduct differential expression (DE) analysis with ",
-                                a("DEGseq, ",
+                                (1) Perform explorative analysis on RNA-seq and DNA methylation data
+                                (2) Conduct RNA differential expression (DE) analysis with ",
+                                a("DEGseq",
                                   href = "https://bioconductor.org/packages/release/bioc/html/DEGseq.html"),
+                                " and ",
                                 a("DESeq2 ",
                                   href = "http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
-                                " based on the provided input data (raw count table and experimental design table).",
+                                " based on the provided input data (raw count table and experimental design table). 
+                                (3) Condcut DNA differential methylation ratio (DMR) analysis with ",
+                                a("DSS",
+                                  href = "http://bioconductor.org/packages/release/bioc/html/DSS.html"),
+                                "based on annotated DNA methylation ratio data.",
                                 style = "padding-left: 2em"),
                               
                               h3("1. RNA-seq Analysis", 
@@ -158,8 +163,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               h4("1.1 Read In Data",
                                  style = "padding-left: 2em"), 
                               p("This tab read in the data for the explorative analysis and DE analysis tabs. First read in RNA-seq count table, a tab or comma seperated file with which the first row will be deleted. 
-                                Then read in the coresponding design table, a template design_table.csv file can be downloaded",
-                                a("here.", 
+                                Then read in the coresponding design table, a template design_table.csv file can be ",
+                                a("downloaded here.", 
                                   href = "https://drive.google.com/uc?export=download&id=1iWeDU8JK5mZxpp6fd9ipf9JXuKKztv7Y"),
                                 "To tailor the design table based on your count table, do not change the first two column names \'Sample Name\' and \'Sample Label\'.
                                 In the \'Sample Name\' column, enter the sample names from your count table. In the \'Sample Label\' column,
@@ -193,19 +198,19 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                 a("DESeq2 ",
                                   href = "http://bioconductor.org/packages/release/bioc/html/DESeq2.html"),
                                 ". It uses DESeqDataSetFromMatrix function to generate a DESeqDataSet object which is then used in function DESeq to estimate size factors,
-                                dispersion, and then a Negative Binomila GLM, with which the Wald test is perfomred to calcuated the p value. Note, experiments without 
+                                dispersion, and then a Negative Binomila GLM, with which the Wald test is perfomred to calcuated the p value. (Note, experiments without 
                                 replicates do not allow for estimation of the dispersion of counts around the expected value for each group, which is critical for differential expression analysis. 
-                                Analysis without replicates was deprecated in v1.20 and is no longer supported since v1.22. User then could extracts a result table from a DESeq analysis which gives
+                                Analysis without replicates was deprecated in v1.20 and is no longer supported since v1.22.) User then could extract a result table from a DESeq analysis which gives
                                 base means across samples, log2 fold changes, standard errors, test statistics, p-values and adjusted p-values. Based on the extracted result table, along with the 
                                 adjusted p-value threshold and absolute log foldchage threshold provided by the user, the app also returns an MA plot.",
                                 style = "padding-left: 3em"),
                               
                               h4("1.5 Change In Gene Expression",
                                  style = "padding-left: 2em"), 
-                              p("This tab takes in two result tables (contrast 1 and contrast 2) from Differential Gene Expression Analysis and returns a two-column heatmap 
-                                of change in gene expression of contrast 1 and contrast 2. User has to select the gene column, the expression difference (log foldchnage) column, the p-value column and enter
+                              p("This tab takes in contrast 1 and contrast 2 result tables (.csv file) from Differential Gene Expression Analysis and returns a two-column heatmap 
+                                of change in gene expression of contrast 1 and contrast 2. User has to select the gene column, the expression difference (log foldchnage) column, the p-value column from the two tables, and enter
                                 the p-value threshold and absolute log foldchage threshold. The App filters out the significant genes based on the provided threshold seperately for each 
-                                contrast table and then inner join the two tables to plot the heatmap.",
+                                table and then inner join the two tables to plot the heatmap.",
                                 style = "padding-left: 3em")),
 
                     ## ---------------- RNA seq analysis -----------------
@@ -226,11 +231,10 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(5,
                                                   fileInput(inputId = "rna_count",
-                                                            label = "Select Count Table File",
-                                                            accept = c(".csv"))),
+                                                            label = "Select Count Table File")),
                                            column(4,
                                                   bsButton("q2", label = "", icon = icon("question"),style = "info", size = "extra-small"),
-                                                  bsTooltip(id = "q2", title = "Take in tab or comma sepearted file, and delete the first row", placement = "right"))
+                                                  bsTooltip(id = "q2", title = "Refer to Introduction 1.1, take in tab or comma sepearted RNA count table, and delete the first row", placement = "right"))
                                            ),
                                          fluidRow(
                                            column(5,
@@ -239,7 +243,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                             accept = c(".csv"))),
                                            column(4,
                                                   bsButton("q3", label = "", icon = icon("question"),style = "info", size = "extra-small"),
-                                                  bsTooltip(id = "q3", title = "Refer to Introduction 1.1 to downloaded and fill the design table template. Warning if value of Sample Name is not found in count table", placement = "right"))
+                                                  bsTooltip(id = "q3", title = "Refer to Introduction 1.1 to downloaded and fill the design_table.csv. Warning if value of Sample Name is not found in count table", placement = "right"))
                                            )),
                                        
                                        
@@ -638,102 +642,74 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                     ## ---------------- DNA methylseq analysis ----------------
                     tabItem(tabName = "dna-seq_analysis",
                             tabsetPanel(
-                              ## ------------ annotation -----------
-                              tabPanel("Annotation",
-                                       wellPanel(tags$h3("Annotation"),
-                                                 shinyFilesButton(id = "dir_anno",
-                                                                  label = "Select Peak file",
-                                                                  title = "Please select a file",
-                                                                  multiple = FALSE,
-                                                                  class = c("csv")),
-                                                 tags$h4("File Directory"),
-                                                 verbatimTextOutput(outputId = "display_dir_anno"),
-                                                 fluidRow(column(2,
-                                                                 textInput(inputId = "tssreg_from",
-                                                                           label = "TSS range from",
-                                                                           value = -3000)),
-                                                          column(2,
-                                                                 textInput(inputId = "tssreg_to",
-                                                                           label = "TSS range to",
-                                                                           value = 3000)),
-                                                          column(2,
-                                                                 textInput(inputId = "txdb",
-                                                                           label = "TxDb object",
-                                                                           value = "TxDb.Mmusculus.UCSC.mm10.knownGene")),
-                                                          column(2,
-                                                                 textInput(inputId = "annodb",
-                                                                           label = "Annotation package",
-                                                                           value = "org.Mm.eg.db"))),
-                                                 actionButton(inputId = "annotate",
-                                                              label = "Annotate"))),
+                              ## ------------ read in data -----------
+                              tabPanel("Read In Data",
+                                       wellPanel(
+                                         fluidRow(
+                                           column(5,
+                                                  textInput(inputId = "project_name_dna",
+                                                            label = "Enter project name below:",
+                                                            value = "Enter project name")),
+                                           column(4,
+                                                  bsButton("prj_name_dna_button", label = "", icon = icon("question"),style = "info", size = "extra-small"),
+                                                  bsTooltip(id = "prj_name_dna_button", title = "Will be used in the filenames of the downloaded files", placement = "right"))
+                                           ),
+                                         fluidRow(
+                                           column(5,
+                                                  fileInput(inputId = "dna_table",
+                                                            label = "Select Annotated DNA file")),
+                                           column(4,
+                                                  bsButton("dna_table_button", label = "", icon = icon("question"),style = "info", size = "extra-small"),
+                                                  bsTooltip(id = "dna_table_button", title = "Refer to Introduction 2.1, take in tab or comma sepearted DNA methylation table with N(reads) and X(read coverage)", placement = "right"))
+                                           )),
+                                       wellPanel(
+                                         tags$h4("View DNA Table:"),
+                                         DT::dataTableOutput(outputId = 'display_dna_table')
+                                       )),
                               ## ----- exploratory analysis -----------
                               tabPanel("Exploratory Analysis",
-                                       wellPanel(fluidRow(column(3,
+                                       wellPanel(tags$h3("Data Preparation"),
+                                                 fluidRow(column(3,
                                                                  selectInput(inputId = "dna_sample_cols1",
                                                                              label = "Select sample columns for dtN",
                                                                              choices = NULL,
                                                                              multiple = TRUE,
                                                                              selected = NULL)),
-                                                          column(4,
+                                                          column(3,
                                                                  selectInput(inputId = "dna_sample_cols2",
-                                                                             label = "Select sample columns for dtX (same order as dtN)",
+                                                                             label = "Select sample columns for dtX",
                                                                              choices = NULL,
                                                                              multiple = TRUE,
-                                                                             selected = NULL)),
+                                                                             selected = NULL),
+                                                                 bsTooltip(id = "dna_sample_cols2", title = "Same order as dtN")),
                                                           
-                                                          column(3,
+                                                          column(5,
                                                                  textInput(inputId = "sample_name",
-                                                                           label = "Enter sample name in order, seperated by comma",
-                                                                           value = "")),
-                                                          column(2,
+                                                                           label = "Enter sample name in order, seperated by comma without tab",
+                                                                           value = "name1,name2,name.."))),
+                                                 fluidRow(column(3,
+                                                                 selectInput(inputId = "dna_feature_col",
+                                                                             label = "Select region column",
+                                                                             choices = NULL,
+                                                                             multiple = FALSE,
+                                                                             selected = NULL)),
+                                                          column(3,
+                                                                 selectInput(inputId = "dna_cpg_col",
+                                                                             label = "Select CpG column",
+                                                                             choices = NULL,
+                                                                             multiple = FALSE,
+                                                                             selected = NULL))),
+                                                 fluidRow(column(2,
                                                                  actionButton(inputId = "generate_expl_dna",
                                                                               label = "Generate Results"))),
                                                  verbatimTextOutput("test_dna")),
                                        
-                                       wellPanel(tags$h3("Annotation by Region (%)"),
+                                       wellPanel(tags$h3("Annotation Percentage(%) Pie Chart"),
                                                  plotOutput(outputId = "anno_by_reg")),
                                        wellPanel(tags$h3("CpG Histogram by Region"),
                                                  plotOutput(outputId = "cpg_hist")),
                                        wellPanel(tags$h3("Methyl% by region"),
-                                                 plotOutput(outputId = "meth_by_region")),
-                                       # heatmap
-                                       wellPanel(tags$h3("Heatmap of Methyl% on Gene Level"),
-                                                 fluidRow(
-                                                   column(3,
-                                                          selectInput(inputId = "dna_heat_N",
-                                                          label = "Select sample columns for dtN",
-                                                          choices = NULL,
-                                                          multiple = TRUE,
-                                                          selected = NULL)),
-                                                   column(3,
-                                                          selectInput(inputId = "dna_heat_X",
-                                                          label = "Select sample columns for dtX",
-                                                          choices = NULL,
-                                                          multiple = TRUE,
-                                                          selected = NULL)),
-                                                   column(3,
-                                                          textInput(inputId = "dna_heat_sample_name",
-                                                          label = "Enter sample name in order, seperated by comma",
-                                                          value = ""))),
-                                                 fluidRow(
-                                                   column(3,
-                                                          selectInput(inputId = "dna_heat_reg",
-                                                          label = "Select one region of interest",
-                                                          choices = c("Promoter", "5' UTR", "Body", "3' UTR", "Downstream"),
-                                                          multiple = FALSE,
-                                                          selected = "Promoter")),
-                                                   column(4,
-                                                          textInput(inputId = "dna_heat_top_n",
-                                                          label = "Display top n genes with largest positive and negative mythly% diff",
-                                                          value = "20")),
-                                                   column(3,
-                                                          actionButton(inputId = "generate_dna_heat",
-                                                          label = "Generate Result"))),
-                                                 fluidRow(
-                                                   column(6,
-                                                          plotlyOutput(outputId = "dna_heat1")),
-                                                   column(6,
-                                                          plotlyOutput(outputId = "dna_heat2"))))),
+                                                 plotOutput(outputId = "meth_by_region"))),
                               
                               ## ------------ DSS ---------------
                               tabPanel("DMR Analysis: DSS",
@@ -752,26 +728,53 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          
                                          tags$h4("Construct BSseqData"),
                                          fluidRow(
-                                           
-                                           column(3,
+                                           column(4,
+                                                  selectInput(inputId = "dss_gene",
+                                                              label = "Select the gene column",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(4,
+                                                  selectInput(inputId = "dss_chr",
+                                                              label = "Select the chromosome column",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(4,
+                                                  selectInput(inputId = "dss_start",
+                                                              label = "Select the position(start) column",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(4,
+                                                  selectInput(inputId = "dss_region",
+                                                              label = "Select the region(feature) column",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL))),
+                                         fluidRow(
+                                           column(4,
                                                   selectInput(inputId = "dss_comp1",
-                                                              label = "Select sample columns for comparison1",
+                                                              label = "Select the dtN and dtX column for sample 1",
                                                               choices = NULL,
                                                               multiple = TRUE,
                                                               selected = NULL)),
-                                           column(3,
-                                                  selectInput(inputId = "dss_comp2",
-                                                              label = "Select sample columns for comparison2",
-                                                              choices = NULL,
-                                                              multiple = TRUE,
-                                                              selected = NULL)),
-                                           column(3,
+                                           column(4,
                                                   textInput(inputId = "dss_comp1_name",
-                                                            label = "Enter sample name for comparison1",
-                                                            value = "")),
-                                           column(3,
+                                                            label = "Enter sample name for sample 1",
+                                                            value = ""))
+                                         ),
+                                         fluidRow(
+                                           column(4,
+                                                  selectInput(inputId = "dss_comp2",
+                                                              label = "Select the dtN and dtX column for sample 2",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(4,
                                                   textInput(inputId = "dss_comp2_name",
-                                                            label = "Enter sample name for comparison2",
+                                                            label = "Enter sample name for sample 2",
                                                             value = ""))
                                          ),
                                          tags$h4("Set Parameters for DML test"),
@@ -806,7 +809,10 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                               selected = 0.1)),
                                            column(2,
                                                   actionButton(inputId = "generate_dss",
-                                                               label = "Generate result and download")))),
+                                                               label = "Generate result")),
+                                           column(2,
+                                                  actionButton(inputId = "download_dss",
+                                                               label = "Download result table")))),
                                          wellPanel(
                                          tags$h3("Result of DML test"),
                                          DT::dataTableOutput(outputId = "dss_dml_tb"))),
@@ -833,35 +839,54 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                        
                                        wellPanel(
                                          tags$h3("Data Preparation"),
+                                         hr(),
+                                         tags$h4("From contrast 1:"),
                                          fluidRow(
                                            column(3,
                                                   selectInput(inputId = "gene_col_selected_dna_contrast_1",
-                                                              label = "From Contrast 1 table select gene column:",
+                                                              label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "methyl_diff_dna_contrast_1",
                                                               label = "Select DNA methylation ratio difference column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL))),
+                                                              selected = NULL)),
+                                           column(3,
+                                                  numericInput(inputId = "change_in_dmr_p_thresh1",
+                                                               label = "Set P value <",
+                                                               value = 0.01,
+                                                               min = 0,
+                                                               max = 1))),
+                                         hr(),
+                                         tags$h4("From contrast 2:"),
                                          fluidRow(
                                            column(3,
                                                   selectInput(inputId = "gene_col_selected_dna_contrast_2",
-                                                              label = "From Contrast 2 table select gene column:",
+                                                              label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "methyl_diff_dna_contrast_2",
                                                               label = "Select DNA methylation ratio difference column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
                                            column(3,
+                                                  numericInput(inputId = "change_in_dmr_p_thresh2",
+                                                               label = "Set P value <",
+                                                               value = 0.01,
+                                                               min = 0,
+                                                               max = 1))),
+                                         hr(),
+                                         fluidRow(
+                                           column(3,
                                                   actionButton(inputId = "inner_join_2contrasts",
-                                                               label = "Inner Join Contrast 1 and Contrast 2 table"))),
+                                                               label = "Inner Join Contrast 1 and Contrast 2 table"))
+                                         ),
                                          fluidRow(
                                            column(7,
                                                   tags$h4("Inner Joined Table Summary:"),
@@ -882,10 +907,10 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                   textInput(inputId = "change_in_methyl_plot_x_text_2",
                                                             label = "x axis text 2",
                                                             value = "trt_3 vs trt_2")),
-                                           column(1,
+                                           column(2,
                                                   actionButton(inputId = "generate_change_in_methyl_plot",
                                                                label = "Generate Plot")),
-                                           column(1,
+                                           column(2,
                                                   downloadButton(outputId = "download_change_in_methyl_plot",
                                                                  label = "Download Results"))),
                                          hr(),
@@ -1975,361 +2000,301 @@ server <- function(input, output, session) {
     contentType = "application/zip"
   )
   
-  ## ------------  DNA mettyl: Annotate and update selectinput------------
-  shinyFileChoose(input = input, 
-                  id = "dir_anno", 
-                  roots = volumes,
-                  session = session,
-                  filetypes = c('csv'))
+  ## ------------  DNA mettyl: Read in data and update selectinput------------
   
-  output$display_dir_anno <- renderPrint({
-    parseFilePaths(
-      roots = volumes, 
-      selection = input$dir_anno)$datapath
+  observeEvent(input$dna_table,{
+    infile_dna_table <- input$dna_table
+    tb <- fread(infile_dna_table$datapath)
+    rv$dna_table <- as.tibble(tb)
+    
+    output$display_dna_table = DT::renderDataTable({
+      DT::datatable(rv$dna_table,
+                    options = list(scrollX = TRUE))})
+    
+    
+    updateSelectInput(
+      session,
+      inputId = "dna_sample_cols1",
+      label = "Select sample columns for dtN",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dna_sample_cols2",
+      label = "Select sample columns for dtX (same order as dtN)",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    
+    updateSelectInput(
+      session,
+      inputId = "dna_heat_N",
+      label = "Select sample columns for dtN",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dna_heat_X",
+      label = "Select sample columns for dtX (same order as dtN)",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    
+    
+    updateSelectInput(
+      session,
+      inputId = "dss_chr",
+      label = "Select the chromosome column",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dss_start",
+      label = "Select the position(start) column",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dss_region",
+      label = "Select the region(feature) column",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dss_gene",
+      label = "Select the gene column",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dss_comp1",
+      label = "Select the dtN and dtX column for sample 1",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dss_comp2",
+      label = "Select the dtN and dtX column for sample 2",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dna_feature_col",
+      label = "Select region column",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    updateSelectInput(
+      session,
+      inputId = "dna_cpg_col",
+      label = "Select CpG column",
+      choices = colnames(rv$dna_table),
+      selected = NULL
+    )
+    
   })
   
   
-  observeEvent(input$annotate,
-               withProgress(message = "Running annotatepeak",
-                            value = 0,
-                            expr = {
-                              incProgress(0.7, detail = "Processing 70%")
-                              rv$peakAnno1 <- annotatePeak(peak = parseFilePaths(roots = volumes,selection = input$dir_anno)$datapath, 
-                                                           tssRegion = c(as.numeric(input$tssreg_from), 
-                                                                         as.numeric(input$tssreg_to)), 
-                                                           TxDb = eval(parse(text = input$txdb)),
-                                                           annoDb = input$annodb)
+  
                               
-                              rv$dt_dna <- data.frame(start = rv$peakAnno1@anno@ranges@start,
-                                                      as.data.frame(rv$peakAnno1@anno@elementMetadata@listData))
-                              
-                              
-                              updateSelectInput(session, 
-                                                inputId = "dna_sample_cols1", 
-                                                label = "Select sample columns for dtN", 
-                                                choices = colnames(rv$dt_dna), 
-                                                selected = NULL)
-                              updateSelectInput(session, 
-                                                inputId = "dna_sample_cols2", 
-                                                label = "Select sample columns for dtX (same order as dtN)", 
-                                                choices = colnames(rv$dt_dna), 
-                                                selected = NULL)
-                              
-                              updateSelectInput(session, 
-                                                inputId = "dna_heat_N", 
-                                                label = "Select sample columns for dtN", 
-                                                choices = colnames(rv$dt_dna), 
-                                                selected = NULL)
-                              updateSelectInput(session, 
-                                                inputId = "dna_heat_X", 
-                                                label = "Select sample columns for dtX (same order as dtN)", 
-                                                choices = colnames(rv$dt_dna), 
-                                                selected = NULL)
-                              updateSelectInput(session, 
-                                                inputId = "dss_comp1", 
-                                                label = "Select sample columns for comparison1", 
-                                                choices = colnames(rv$dt_dna), 
-                                                selected = NULL)
-                              updateSelectInput(session, 
-                                                inputId = "dss_comp2", 
-                                                label = "Select sample columns for comparison2", 
-                                                choices = colnames(rv$dt_dna), 
-                                                selected = NULL)
-                              
-                              incProgress(0.3, detail = "Processing 100%")
-                            })
-  )
   
   ## ----------------------- Explotary analysis ------------------------
   observeEvent(input$generate_expl_dna,{
     
-    # anno by reg (not related to samples)
-    t1 <- rv$peakAnno1@annoStat
-    t1$Feature <- factor(t1$Feature,
-                         levels = as.character(t1$Feature[order(t1$Frequency,
-                                                                decreasing = TRUE)]))
-    
-    rv$anno_by_reg <- ggplot(t1,
-                             aes(x = "",
-                                 y = Frequency,
-                                 fill = Feature)) +
-      geom_bar(width = 1, 
-               stat = "identity",
-               color = "black") +
-      coord_polar("y",
-                  start = 0,
-                  direction = -1) +
-      scale_x_discrete("") +
-      ggtitle("Annotation by Region (%)")
-    
-    output$anno_by_reg <- renderPlot({
-      print(rv$anno_by_reg)
-    })
-    
-    # construct dt with samples selected by users
-    # remove genes with unmapped region
-    rv$dt_dna1 <- rv$dt_dna[!is.na(rv$dt_dna$SYMBOL == "NA"), ]
-    
-    rv$dt_dna2 <- data.frame(gene = rv$dt_dna1$SYMBOL,
-                             anno = rv$dt_dna1$annotation,
-                             geneId = rv$dt_dna1$geneId,
-                             chr = rv$dt_dna1$geneChr,
-                             pos = rv$dt_dna1$start,
-                             reg = NA,
-                             CpG = rv$dt_dna1$CpG,
-                             rv$dt_dna1[, input$dna_sample_cols1],
-                             rv$dt_dna1[, input$dna_sample_cols2],
-                             geneName = rv$dt_dna1$GENENAME)
-    
-    
-    rv$dt_dna2 <- try(droplevels(rv$dt_dna2[rowSums(rv$dt_dna2[, c(input$dna_sample_cols1, input$dna_sample_cols2)],
-                                                    na.rm = TRUE) > 0, ]),
-                      silent = TRUE)
-    
-    if (class(rv$dt_dna2) == "try-error") {
-      showNotification(rv$dds[1],
+    if (length(input$dna_sample_cols1) != length(input$dna_sample_cols2) ) {
+      showNotification("Number of samples selected for dtN is not equal to number of samples selected for dtX.",
                        type = "error",
                        duration = NULL)
-    }else{
-      output$test_dna <- renderPrint( cat(paste0("Removed ",
-                                                 nrow(rv$dt_dna) - nrow(rv$dt_dna1),
-                                                 " genes with unmapped region and ",
-                                                 nrow(rv$dt_dna1) - nrow(rv$dt_dna2),
-                                                 " genes with all NA value, with ",
-                                                 nrow(rv$dt_dna2), 
-                                                 " genes left.")))
-      rv$dt_dna2$reg <- as.character(rv$dt_dna2$anno)
-      
-      rv$dt_dna2$reg[substr(rv$dt_dna2$anno,
-                            1,
-                            8) == "Promoter"] <- "Promoter"
-      rv$dt_dna2$reg[substr(rv$dt_dna2$anno,
-                            1,
-                            4) %in% c("Exon",
-                                      "Intr")] <- "Body"
-      rv$dt_dna2$reg[substr(rv$dt_dna2$anno,
-                            1,
-                            4) %in% c("Dist",
-                                      "Down")] <- "Downstream"
-      rv$dt_dna2$reg <- factor(rv$dt_dna2$reg,
-                               levels = c("Promoter",
-                                          "5' UTR",
-                                          "Body",
-                                          "3' UTR",
-                                          "Downstream"))
-      
-      # cpg hist (not related to samples)
-      rv$cpg_hist <- ggplot(rv$dt_dna2,
-                            aes(x = CpG)) +
-        facet_wrap(~ reg, scale = "free_y") +
-        geom_histogram(color = "black",
-                       fill = "grey",
-                       binwidth = 5) +
-        scale_x_continuous(name = "Number of CpG",
-                           breaks = c(3,
-                                      seq(from = 5,
-                                          to = 60,
-                                          by = 5))) +
-        coord_cartesian(xlim = c(3, 60)) +
-        scale_y_continuous(name = "Counts") +
-        ggtitle("Distribution of DMR by Number of CpG and Region")
-      
-      output$cpg_hist <- renderPlot({
-        print(rv$cpg_hist)
-      })
-      
-      
-      # avergae methy% by region by sample
-      dtN <- as.matrix(rv$dt_dna2[, input$dna_sample_cols1])
-      dtX <- as.matrix(rv$dt_dna2[, input$dna_sample_cols2])
-      # Add 0.5 to all NAs and zeros in meth. hits
-      # NOTE: if there were no hits (N = NA or 0), the pct will be NA anyway
-      dtX <- apply(dtX,
-                   2,
-                   function(a) {
-                     a[is.na(a)] <- a[a == 0] <- 0.5
-                     return(a)
+    } else if (length(input$dna_sample_cols1) != length(unlist(strsplit(input$sample_name, ","))) ) {
+      showNotification("Number of names entered is not equal to number of samples selected.",
+                       type = "error",
+                       duration = NULL)
+    } else if (!is.numeric(pull(rv$dna_table[, input$dna_cpg_col]))) {
+      showNotification("Selected CpG column is not numerical. Please select the right column.",
+                       type = "error",
+                       duration = NULL)
+    } else if (!is.character(pull(rv$dna_table[, input$dna_feature_col]))) {
+      showNotification("Selected region column is not character. Please select the right column.",
+                       type = "error",
+                       duration = NULL)
+    } else {
+      withProgress(message = "Generating Result",
+                 value = 0,
+                 expr = {
+                   incProgress(0.3, detail = "Generate annotation percentage pie chart")
+                   # anno pie chart (not related to samples)
+                   t1 <- rv$dna_table %>%
+                     rename(region = !!as.name(input$dna_feature_col)) %>%
+                     mutate(region = replace(region,
+                                             str_detect(region, "Intro"), "Intron")) %>%
+                     mutate(region = replace(region,
+                                             str_detect(region, "Exon"), "Exon")) %>%
+                     count(region) %>%
+                     rename(Frequency = n) %>%
+                     mutate(Frequency = Frequency / sum(Frequency) * 100) %>%
+                     mutate(region = fct_reorder(region, Frequency))
+                   
+                   rv$anno_by_reg_plot <-
+                     ggplot(t1, aes(x = "", y = Frequency, fill = region)) +
+                     geom_bar(width = 1,
+                              stat = "identity",
+                              color = "black") +
+                     coord_polar("y",
+                                 start = 0,
+                                 direction = 1) +
+                     scale_x_discrete("") +
+                     ggtitle("Annotation by Region (%)")
+                   
+                   output$anno_by_reg <- renderPlot({
+                     print(rv$anno_by_reg_plot)
                    })
-      pct <- dtX/dtN
-      
-      dt.pct <- data.table(rv$dt_dna2$reg,
-                           pct)
-      
-      colnames(dt.pct) <- c("reg",
-                            unlist(strsplit(input$sample_name, ",")))
-      
-      dt.pct.mean <- aggregate( . ~ reg,
-                                dt.pct, mean)
-      
-      dt.pct.long <- melt(dt.pct.mean,
-                          id.vars = "reg",
-                          variable.name = "trt",
-                          value.name = "Methylation (%)")
-      
-      output$test_dna1 <- renderPrint(dt.pct.long)
-      output$test_dna2 <- renderPrint(dt.pct.mean)
-      rv$meth_by_region <- ggplot(dt.pct.long,
-                                  aes(x = reg,
-                                      y = 100*`Methylation (%)`,
-                                      group = trt,
-                                      fill = trt)) +
-        geom_bar(position = position_dodge(),
-                 stat = "identity") +
-        scale_x_discrete("Region") +
-        scale_y_continuous("Average Methylation (%)",
-                           limits = c(0, 100)) +
-        scale_fill_discrete("Treatment") +
-        theme(plot.title = element_text(hjust = 0.5),
-              axis.text.x = element_text(angle = 45,
-                                         hjust = 1))
-      
-      output$meth_by_region <- renderPlot({
-        print(rv$meth_by_region)
-      })  
+                   
+                   incProgress(0.3, detail = "Generate CpG histogram")
+                   # cpg hist (not related to samples)
+                   t2 <- rv$dna_table %>%
+                     select(
+                       cpg = !!as.name(input$dna_cpg_col),
+                       region = !!as.name(input$dna_feature_col)
+                     ) %>%
+                     mutate(
+                       region = case_when(
+                         str_detect(region, "Intr") | str_detect(region, "Exon") ~ "Body",
+                         str_detect(region, "3' UTR") ~ "3' UTR",
+                         str_detect(region, "5' UTR") ~ "5' UTR",
+                         str_detect(region, "Dist") |
+                           str_detect(region, "Down") ~ "Downstream",
+                         str_detect(region, "Promoter") ~ "Promoter"
+                       )
+                     )
+                   
+                   rv$cpg_hist <- ggplot(t2,
+                                         aes(x = cpg)) +
+                     facet_wrap(~ region, scales = "free_y") +
+                     geom_histogram(color = "black",
+                                    fill = "grey",
+                                    binwidth = 5) +
+                     scale_x_continuous(name = "Number of CpG") +
+                     scale_y_continuous(name = "Frequency") +
+                     ggtitle("Distribution of CpG by Region")
+                   
+                   output$cpg_hist <- renderPlot({
+                     print(rv$cpg_hist)
+                   })
+                   
+                   
+                   incProgress(0.2, detail = "Generate average methy% by region plot")
+                   # avergae methy% by region (relate to samples selected)
+                   # dtN
+                   t3 <- rv$dna_table %>%
+                     select(input$dna_sample_cols1)
+                   t3 <- apply(t3,
+                               2,
+                               function(col_t3) {
+                                 col_t3[col_t3 == 0] <- NA
+                                 return(col_t3)
+                               })
+                   
+                   #dtX
+                   t4 <- rv$dna_table %>%
+                     select(input$dna_sample_cols2)
+                   t4 <- apply(t4,
+                               2,
+                               function(col_t4) {
+                                 col_t4[col_t4 == 0] <- NA
+                                 return(col_t4)
+                               })
+                   # pct
+                   pct <- as.tibble(as.matrix(t4) / as.matrix(t3))
+                   names(pct) <- unlist(strsplit(input$sample_name, ","))
+                   
+                   t5 <- rv$dna_table %>%
+                     select(region = !!as.name(input$dna_feature_col)) %>%
+                     mutate(
+                       region = case_when(
+                         str_detect(region, "Intr") | str_detect(region, "Exon") ~ "Body",
+                         str_detect(region, "3' UTR") ~ "3' UTR",
+                         str_detect(region, "5' UTR") ~ "5' UTR",
+                         str_detect(region, "Dist") |
+                           str_detect(region, "Down") ~ "Downstream",
+                         str_detect(region, "Promoter") ~ "Promoter"
+                       )
+                     )
+                   
+                   pct_tb <- cbind(t5, pct)
+                   
+                   pct_tb <- pct_tb %>%
+                     drop_na() %>%
+                     group_by(region) %>%
+                     summarise_all(mean) %>%
+                     gather(key = "trt", value = "Methylation (%)",-region)
+                   
+                   
+                   rv$meth_by_region <- ggplot(pct_tb,
+                                               aes(
+                                                 x = region,
+                                                 y = 100 * `Methylation (%)`,
+                                                 group = trt,
+                                                 fill = trt
+                                               )) +
+                     geom_bar(position = position_dodge(),
+                              stat = "identity") +
+                     scale_x_discrete("Region") +
+                     scale_y_continuous("Average Methylation (%)",
+                                        limits = c(0, 100)) +
+                     scale_fill_discrete("Sample") +
+                     theme(plot.title = element_text(hjust = 0.5),
+                           axis.text.x = element_text(angle = 45,
+                                                      hjust = 1))
+                   
+                   output$meth_by_region <- renderPlot({
+                     print(rv$meth_by_region)
+                   })
+                   
+                   incProgress(0.2, detail = "Generate average methy% by region plot")
+                   Sys.sleep(1)
+                 }) # end of withProgress
     }
+    
+    
   })
   
-  # Heatmap of methyl% on gene level
-  observeEvent(input$generate_dna_heat, {
-    dt <- rv$dt_dna[!is.na(rv$dt_dna$SYMBOL == "NA"), ]
-    
-    dt1 <- data.frame(gene = dt$SYMBOL,
-                      anno = dt$annotation,
-                      reg = NA,
-                      dt[, input$dna_heat_X],
-                      dt[, input$dna_heat_N],
-                      geneName = dt$GENENAME)
-    
-    dt1$reg <- as.character(dt1$anno)
-    rv$dt_dna2$reg <- as.character(rv$dt_dna2$anno)
-    dt1$reg[substr(dt1$anno,
-                   1,
-                   8) == "Promoter"] <- "Promoter"
-    dt1$reg[substr(dt1$anno,
-                   1,
-                   4) %in% c("Exon",
-                             "Intr")] <- "Body"
-    dt1$reg[substr(dt1$anno,
-                   1,
-                   4) %in% c("Dist",
-                             "Down")] <- "Downstream"
-    dt1$reg <- factor(dt1$reg,
-                      levels = c("Promoter",
-                                 "5' UTR",
-                                 "Body",
-                                 "3' UTR",
-                                 "Downstream"))
-    dt2 <- na.omit(dt1)
-    
-    dtN <- as.matrix(dt2[, input$dna_heat_N])
-    dtX <- as.matrix(dt2[, input$dna_heat_X])
-    pct <- as.data.frame(dtX/dtN)
-    colnames(pct) <- unlist(strsplit(input$dna_heat_sample_name, ","))
-    pct$gene <- dt2$gene
-    pct$reg <- dt2$reg
-    # filter reg
-    pct <- pct[pct$reg == input$dna_heat_reg, ]
-    pct$diff_trt2_trt1 <- pct[, 2] - pct[, 1] 
-    pct_sort <- pct[order(pct$diff_trt2_trt1, 
-                          decreasing = TRUE) , ]  # trt1,trt2,trt3,gene,diff
-    pct_sort$diff_trt2_trt1 <- NULL # trt1,trt2,trt3,gene,reg
-    pct_sort$reg <- NULL
-    
-    pct_sort_pos <- pct_sort[1:as.numeric(input$dna_heat_top_n) ,]
-    pct_sort_neg <- pct_sort[(nrow(pct_sort) - 1 - as.numeric(input$dna_heat_top_n)):nrow(pct_sort), ]
-    
-    pos_long <- melt(data = pct_sort_pos,
-                     id.vars = "gene",
-                     measure.vars = unlist(strsplit(input$dna_heat_sample_name, ",")))
-    neg_long <- melt(data = pct_sort_neg,
-                     id.vars = "gene",
-                     measure.vars = unlist(strsplit(input$dna_heat_sample_name, ",")))
-    
-    rv$dna_heat1 <- ggplot(data = pos_long) +
-      geom_tile(aes(x = variable,
-                    y = gene,
-                    fill = value),
-                color = "black") +
-      scale_fill_gradient2(high = "red",
-                           limit = c(0, 1),
-                           name = "Methylation") +
-      scale_x_discrete("Treatment",
-                       expand = c(0, 0)) +
-      scale_y_discrete("Gene",
-                       expand = c(0, 0)) +
-      theme(axis.text.x = element_text(angle = 30,
-                                       hjust = 1),
-            plot.title = element_text(hjust = 0.5)) +
-      ggtitle(paste0("Top ", 
-                     input$dna_heat_top_n,
-                     " Genes With Largest\nPositive Differences in ",
-                     colnames(pct_sort_pos)[2], 
-                     " vs ",
-                     colnames(pct_sort_pos)[1], 
-                     " in ", 
-                     input$dna_heat_reg ))
-    
-    output$dna_heat1 <- renderPlotly({
-      print(ggplotly(rv$dna_heat1))
-    })
-    
-    rv$dna_heat2 <- ggplot(data = neg_long) +
-      geom_tile(aes(x =  variable,
-                    y = gene,
-                    fill = value),
-                color = "black") +
-      scale_fill_gradient2(high = "red",
-                           limit = c(0, 1),
-                           name = "Methylation") +
-      scale_x_discrete("Treatment",
-                       expand = c(0, 0)) +
-      scale_y_discrete("Gene",
-                       expand = c(0, 0)) +
-      theme(axis.text.x = element_text(angle = 30,
-                                       hjust = 1),
-            plot.title = element_text(hjust = 0.5)) +
-      ggtitle(paste0("Top ", 
-                     input$dna_heat_top_n,
-                     "  Genes With Largest\nNegative Differences in ",
-                     colnames(pct_sort_pos)[2], 
-                     " vs ",
-                     colnames(pct_sort_pos)[1], 
-                     " in ", 
-                     input$dna_heat_reg ))
-    
-    output$dna_heat2 <- renderPlotly({
-      print(ggplotly(rv$dna_heat2))
-    })
-    
-    
-  })
+  
   
   ## ----------------------- DSS -------------
   fdtdss <- reactive({
-    dt <- data.frame(start = rv$peakAnno1@anno@ranges@start,
-                     as.data.frame(rv$peakAnno1@anno@elementMetadata@listData))
-    dt <- dt[!is.na(dt$SYMBOL == "NA"), ]
     
     comp1 <- input$dss_comp1
     comp2 <- input$dss_comp2
     name1 <- input$dss_comp1_name
     name2 <- input$dss_comp2_name
     
-    df1 <- data.frame(chr = dt$geneChr,
-                      pos = dt$start,
-                      N = dt[, comp1[1]],
-                      X = dt[, comp1[2]])
-    df2 <- data.frame(chr = dt$geneChr,
-                      pos = dt$start,
-                      N = dt[, comp2[1]],
-                      X = dt[, comp2[2]])
+    rv$dss_w_gene <- rv$dna_table %>% 
+      select(input$dss_comp1, input$dss_comp2, input$dss_chr, input$dss_start, input$dss_gene, input$dss_region) %>% 
+      drop_na()
+    names(rv$dss_w_gene) <- c("sample1_N", "sample1_X", "sample2_N", "sample2_X", "geneChr", "start", "gene", "region")
+    
+    df1 <- data.frame(chr = rv$dss_w_gene$geneChr,
+                      pos = rv$dss_w_gene$start,
+                      N = rv$dss_w_gene$sample1_N,
+                      X = rv$dss_w_gene$sample1_X)
+    df2 <- data.frame(chr = rv$dss_w_gene$geneChr,
+                      pos = rv$dss_w_gene$start,
+                      N = rv$dss_w_gene$sample2_N,
+                      X = rv$dss_w_gene$sample2_X)
     frames <- list(df1, df2)
     names(frames) <- c(name1, name2)
     bsdata <- makeBSseqData(frames, names(frames))
     
     # perform DML test, differntially methylated loci (DML) for two group comparisons of bisulfite sequencing (BS-seq)
     # without replicates, must set equal.disp=T
-    
     dml <- DMLtest(bsdata, 
                    group1 = name1,
                    group2 = name2,
@@ -2340,35 +2305,54 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$generate_dss, {
-    dml <- fdtdss()
-
-    write.csv(dml,
-              file = paste("dss_",
-                           Sys.Date(),
-                           ".csv",
-                           sep = ""),
-              row.names = FALSE)
-    
-    output$dss_dml_tb <- DT::renderDataTable({
-      datatable(dml,
-                    options = list(scrollX = TRUE))})
+    withProgress(message = "Generating Result table",
+                 value = 0,
+                 expr = {
+                   
+                   incProgress(0.2, detail = "Smoothing")
+                   incProgress(0.3, detail = "Estimating dispersion for each CpG site, this will take a while...")
+                   dml <- fdtdss()
+                   dml <- as.tibble(dml) %>% 
+                     unite("chr_start", chr, pos)
+                   
+                   # map gene and feature/region column from input table to dml result table 
+                   gene_region <- rv$dss_w_gene %>% 
+                     mutate(start = as.character(start)) %>% 
+                     unite("chr_start", geneChr, start) %>% 
+                     select(chr_start, region, gene)
+                     
+                   rv$dml_gene_mapped_back <- left_join(dml, gene_region, by = "chr_start")
+                   
+                   
+                   output$dss_dml_tb <- DT::renderDataTable({
+                     datatable(rv$dml_gene_mapped_back,
+                               options = list(scrollX = TRUE))
+                   })
+                   
+                   incProgress(0.5, detail = "Estimating dispersion for each CpG site, this will take a while...")
+                   Sys.sleep(1)
+                   })
   })
+  
+  
+  output$download_dss <- downloadHandler(
+    filename = function() {
+      paste(input$project_name_dna,
+            "dss_result_table",
+            ".csv",
+            sep = "")
+    },
+    content = function(file) {
+      write.csv(rv$dml_gene_mapped_back,
+                file = file,
+                row.names = FALSE)
+    }
+  )
+
   
   # # This should work but doesn't
   # # Source: https://yihui.shinyapps.io/DT-info/
-  # output$download_dss <- downloadHandler(
-  #   filename = function() {
-  #     paste("dss_",
-  #           Sys.Date(),
-  #           ".csv",
-  #           sep = "")
-  #   },
-  #   content = function(file) {
-  #     dml <- input$dss_dml_tb_rows_all
-  #     write.csv(dml,
-  #               file = file,
-  #               row.names = FALSE)
-  #   })
+  
   
   ## --------------- Change-in-Methyl Heatmap -------------
   observeEvent(input$dna_contrast_1,{
@@ -2383,7 +2367,7 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
     updateSelectInput(session,
                       inputId = "gene_col_selected_dna_contrast_1",
-                      label = "From Contrast 1 table select gene column:",
+                      label = "Select gene column:",
                       choices = colnames(rv$tb_dna_contrast_1),
                       selected = NULL)
     updateSelectInput(session,
@@ -2404,7 +2388,7 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
     updateSelectInput(session,
                       inputId = "gene_col_selected_dna_contrast_2",
-                      label = "From Contrast 2 table select gene column:",
+                      label = "Select gene column:",
                       choices = colnames(rv$tb_dna_contrast_2),
                       selected = NULL)
     updateSelectInput(session,
@@ -2418,13 +2402,15 @@ server <- function(input, output, session) {
       select(input$gene_col_selected_dna_contrast_1,
              input$methyl_diff_dna_contrast_1) %>%
       rename("gene" = input$gene_col_selected_dna_contrast_1,
-             "methyl_diff_1" = input$methyl_diff_dna_contrast_1)
+             "methyl_diff_1" = input$methyl_diff_dna_contrast_1) %>% 
+      filter(methyl_diff_1 < input$change_in_dmr_p_thresh1)
     
     contrast2 <- rv$tb_dna_contrast_2  %>%
       select(input$gene_col_selected_dna_contrast_2,
              input$methyl_diff_dna_contrast_2)  %>%
       rename("gene" = input$gene_col_selected_dna_contrast_2,
-             "methyl_diff_2" = input$methyl_diff_dna_contrast_2)
+             "methyl_diff_2" = input$methyl_diff_dna_contrast_2) %>% 
+      filter(methyl_diff_2 < input$change_in_dmr_p_thresh2)
     
     rv$joined_2contrasts <- try(
       inner_join(contrast1, contrast2, by = "gene") %>% 
