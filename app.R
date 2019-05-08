@@ -148,7 +148,7 @@ library(tibble)
 library(VennDiagram)
 library(zip)
 
-library(BiocInstaller)
+# library(BiocInstaller) # no need in R 3.6
 library(DESeq2)
 library(DEGseq)
 library(BiocParallel)
