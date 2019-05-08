@@ -124,7 +124,7 @@ if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocMana
 
 options(stringsAsFactors = FALSE)
 options(shiny.maxRequestSize = 30*1024^2) 
-options(repos = BiocInstaller::biocinstallRepos())
+# options(repos = BiocInstaller::biocinstallRepos())
 
 library(shinydashboard)
 library(DT)
