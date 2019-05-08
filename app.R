@@ -104,8 +104,8 @@ cran_packages <- c("shinydashboard",
 if (length(setdiff(cran_packages, rownames(installed.packages()))) > 0) {install.packages(setdiff(cran_packages, rownames(installed.packages()))) }
 #
 # # 2. Bioconductor packages----
-bio_packages <- c("BiocInstaller",
-                  "DESeq2",
+bio_packages <- c("DESeq2",
+             #     "BiocInstaller", # not work with R version 3.6.0+
                   "DEGseq",
                   "GOSemSim",
                   "ChIPseeker",
