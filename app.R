@@ -123,7 +123,7 @@ if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocMana
 ### end addition by R Wu
 
 options(stringsAsFactors = FALSE)
-options(shiny.maxRequestSize = 30*1024^2) 
+options(shiny.maxRequestSize = 60*1024^2) 
 # options(repos = BiocInstaller::biocinstallRepos())
 
 library(shinydashboard)
@@ -671,7 +671,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                   bsTooltip(id = "change_in_gene_expr_plot_x_text_2", title = "Plot will update automatically")),
                                            column(2,
                                                   actionButton(inputId = "generate_change_in_gene_expr_plot",
-                                                               label = "Generate Heatmap"),
+                                                               label = "Generate Plots"),
                                                   bsTooltip(id = "generate_change_in_gene_expr_plot", title = "From filtered and inner-joined table created above")),
                                            column(2,
                                                   downloadButton(outputId = "download_change_in_gene_expr_plot",
@@ -874,12 +874,12 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(6,
                                                   fileInput(inputId = "dna_contrast_1",
-                                                            label = "Select DNA File of contrast 1",
+                                                            label = "Select result table from DSS analysis for contrast 1",
                                                             accept = c(".csv")))),
                                          fluidRow(
                                            column(6,
                                                   fileInput(inputId = "dna_contrast_2",
-                                                            label = "Select DNA File of contrast 1",
+                                                            label = "Select result table from DSS analysis for contrast 2",
                                                             accept = c(".csv"))))),
                                        wellPanel(
                                          tags$h4("View Contrast 1 Table:"),
@@ -892,46 +892,82 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          tags$h3("Data Preparation"),
                                          hr(),
                                          tags$h4("From contrast 1:"),
+                                         
                                          fluidRow(
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "gene_col_selected_dna_contrast_1",
                                                               label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL)),
+                                                              selected = NULL))
+                                           ),
+                                         fluidRow(
                                            column(4,
                                                   selectInput(inputId = "methyl_diff_dna_contrast_1",
                                                               label = "Select DNA methylation ratio difference column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
+                                                  numericInput(inputId = "change_in_dmr_diff_thresh1",
+                                                              label = "Set Obs(log foldchange) >=",
+                                                              min = 0,
+                                                              value = 0))
+                                         ),
+                                         fluidRow(
+                                           column(4,
+                                                  selectInput(inputId = "pval_col_selected_dna_contrast_1",
+                                                              label = "Select P value column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(4,
                                                   numericInput(inputId = "change_in_dmr_p_thresh1",
                                                                label = "Set P value <",
                                                                value = 0.01,
                                                                min = 0,
-                                                               max = 1))),
+                                                               max = 1))
+                                           ),
+                                         
+                                         
                                          hr(),
                                          tags$h4("From contrast 2:"),
                                          fluidRow(
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "gene_col_selected_dna_contrast_2",
                                                               label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL)),
+                                                              selected = NULL))
+                                           ),
+                                         fluidRow(
                                            column(4,
                                                   selectInput(inputId = "methyl_diff_dna_contrast_2",
                                                               label = "Select DNA methylation ratio difference column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
+                                                  numericInput(inputId = "change_in_dmr_diff_thresh2",
+                                                              label = "Set Obs(log foldchange) >=",
+                                                              min = 0,
+                                                              value = 0))
+                                         ),
+                                         fluidRow(
+                                           column(4,
+                                                  selectInput(inputId = "pval_col_selected_dna_contrast_2",
+                                                              label = "Select P value column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL)),
+                                           column(4,
                                                   numericInput(inputId = "change_in_dmr_p_thresh2",
                                                                label = "Set P value <",
                                                                value = 0.01,
                                                                min = 0,
-                                                               max = 1))),
+                                                               max = 1))
+                                           ),
+                                         
                                          hr(),
                                          fluidRow(
                                            column(3,
@@ -948,22 +984,33 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                            column(3,
                                                   textInput(inputId = "change_in_methyl_plot_title",
                                                             label = "Enter plot title",
-                                                            value = "Change in Methylation Ratio")),
+                                                            value = "Change in Methylation Ratio"),
+                                                  bsTooltip(id = "change_in_methyl_plot_title", title = "Plot will update automatically")),
                                            
                                            column(2,
                                                   textInput(inputId = "change_in_methyl_plot_x_text_1",
                                                             label = "x axis text 1",
-                                                            value = "trt_2 vs trt_1")),
+                                                            value = "trt_2 vs trt_1"),
+                                                  bsTooltip(id = "change_in_methyl_plot_x_text_1", title = "Plot will update automatically")),
                                            column(2,
                                                   textInput(inputId = "change_in_methyl_plot_x_text_2",
                                                             label = "x axis text 2",
-                                                            value = "trt_3 vs trt_2")),
+                                                            value = "trt_3 vs trt_2"),
+                                                  bsTooltip(id = "change_in_methyl_plot_x_text_2", title = "Plot will update automatically")),
                                            column(2,
                                                   actionButton(inputId = "generate_change_in_methyl_plot",
-                                                               label = "Generate Plot")),
+                                                               label = "Generate Plots"),
+                                                  bsTooltip(id = "generate_change_in_methyl_plot", title = "From filtered and inner-joined table created above")),
                                            column(2,
                                                   downloadButton(outputId = "download_change_in_methyl_plot",
-                                                                 label = "Download Results"))),
+                                                                 label = "Download Results"),
+                                                  bsTooltip(id = "download_change_in_methyl_plot", title = "Including inner-joined table, venn diagrams and heatmap", trigger = "hover"))),
+                                         hr(),
+                                         fluidRow(
+                                           column(5,
+                                                  plotOutput(outputId = "display_venn_diagram1_dna")),
+                                           column(5,
+                                                  plotOutput(outputId = "display_venn_diagram2_dna"))),
                                          hr(),
                                          fluidRow(
                                            column(7,
@@ -2017,7 +2064,7 @@ server <- function(input, output, session) {
                 file_path2, 
                 row.names = FALSE)
       file_path3 <- paste(input$project_name,
-                          "_venn_up_donw.tiff",
+                          "_rna_venn_up_donw.tiff",
                           sep = "")
       tiff(filename = file_path3,
            height = 4,
@@ -2029,7 +2076,7 @@ server <- function(input, output, session) {
       dev.off()
       
       file_path4 <- paste(input$project_name,
-                          "_venn_donw_up.tiff",
+                          "_rna_venn_donw_up.tiff",
                           sep = "")
       tiff(filename = file_path4,
            height = 4,
@@ -2425,7 +2472,11 @@ server <- function(input, output, session) {
                       inputId = "methyl_diff_dna_contrast_1",
                       label = "Select DNA methylation ratio difference column:",
                       choices = colnames(rv$tb_dna_contrast_1),
-                      selected = NULL)})
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "pval_col_selected_dna_contrast_1",
+                      label = "Select P value column",
+                      choices = colnames(rv$tb_dna_contrast_1))})
   
   observeEvent(input$dna_contrast_2,{
     infile_dna_contrast_2 <- input$dna_contrast_2
@@ -2446,40 +2497,90 @@ server <- function(input, output, session) {
                       inputId = "methyl_diff_dna_contrast_2",
                       label = "Select DNA methylation ratio difference column:",
                       choices = colnames(rv$tb_dna_contrast_2),
-                      selected = NULL)})
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "pval_col_selected_dna_contrast_2",
+                      label = "Select P value column",
+                      choices = colnames(rv$tb_dna_contrast_2))})
   
   observeEvent(input$inner_join_2contrasts,{
-    contrast1 <- rv$tb_dna_contrast_1 %>%
-      select(input$gene_col_selected_dna_contrast_1,
-             input$methyl_diff_dna_contrast_1) %>%
-      rename("gene" = input$gene_col_selected_dna_contrast_1,
-             "methyl_diff_1" = input$methyl_diff_dna_contrast_1) %>% 
-      filter(methyl_diff_1 < input$change_in_dmr_p_thresh1)
+    contrast1 <- try(rv$tb_dna_contrast_1 %>%
+                       filter(!!as.name(input$pval_col_selected_dna_contrast_1) < input$change_in_dmr_p_thresh1 &
+                              abs(!!as.name(input$methyl_diff_dna_contrast_1)) >=  input$change_in_dmr_diff_thresh1) %>% 
+                       select(input$gene_col_selected_dna_contrast_1,
+                              input$methyl_diff_dna_contrast_1) %>%
+                       rename("gene" = input$gene_col_selected_dna_contrast_1,
+                              "methyl_diff_1" = input$methyl_diff_dna_contrast_1),
+                     silent = TRUE)
     
-    contrast2 <- rv$tb_dna_contrast_2  %>%
-      select(input$gene_col_selected_dna_contrast_2,
-             input$methyl_diff_dna_contrast_2)  %>%
-      rename("gene" = input$gene_col_selected_dna_contrast_2,
-             "methyl_diff_2" = input$methyl_diff_dna_contrast_2) %>% 
-      filter(methyl_diff_2 < input$change_in_dmr_p_thresh2)
+    if (inherits(contrast1, "try-error")) {
+      showNotification("Please choose the correct columns for contrast1 and try again",
+                       type = "error",
+                       duration = NULL)}  
+    
+    contrast2 <- try(rv$tb_dna_contrast_2  %>%
+                       filter(!!as.name(input$pval_col_selected_dna_contrast_2) < input$change_in_dmr_p_thresh2 &
+                              abs(!!as.name(input$methyl_diff_dna_contrast_2)) >=  input$change_in_dmr_diff_thresh2) %>% 
+                       select(input$gene_col_selected_dna_contrast_2,
+                              input$methyl_diff_dna_contrast_2) %>%
+                       rename("gene" = input$gene_col_selected_dna_contrast_2,
+                              "methyl_diff_2" = input$methyl_diff_dna_contrast_2),
+                     silent = TRUE)
+    
+    if (inherits(contrast1, "try-error")) {
+      showNotification("Please choose the correct columns for contrast2 and try again",
+                       type = "error",
+                       duration = NULL)}  
+    # output$display_summary_inner_joined_2contrasts <- renderPrint({summary(contrast1)})
     
     rv$joined_2contrasts <- try(
-      inner_join(contrast1, contrast2, by = "gene") %>% 
+      inner_join(contrast1, contrast2, by = "gene") %>%
         filter((methyl_diff_1*methyl_diff_2) < 0),
       silent = T)
-    
+
     if (inherits(rv$joined_2contrasts, "try-error")) {
-      showNotification("Please choose the correct columns and try again",
+      showNotification(rv$joined_2contrasts[1],
                        type = "error",
                        duration = NULL)
 
     }else{
+      rv$dna_contrast1_up_num <-  nrow(filter(contrast1, methyl_diff_1 > 0))
+      rv$dna_contrast1_down_num <-  nrow(filter(contrast1, methyl_diff_1 < 0))
+      rv$dna_contrast2_up_num <-  nrow(filter(contrast2, methyl_diff_2 > 0))
+      rv$dna_contrast2_down_num <-  nrow(filter(contrast2, methyl_diff_2 < 0))
+      rv$dna_up_donw <- nrow(filter(rv$joined_2contrasts, methyl_diff_1 > 0))
+      rv$dna_down_up <- nrow(filter(rv$joined_2contrasts, methyl_diff_1 < 0))
       output$display_summary_inner_joined_2contrasts <- renderPrint({summary(rv$joined_2contrasts)})
     }
     
     })
   
   observeEvent(input$generate_change_in_methyl_plot,{
+    if (nrow(rv$joined_2contrasts) == 0) {
+      showNotification("There is no genes left to plot. Please reset your threshold.",
+                       type = "error",
+                       duration = NULL)
+    } else {
+      output$display_venn_diagram1_dna <- renderPlot({
+      p1 <- draw.pairwise.venn(area1 = rv$dna_contrast1_up_num,
+                               area2 = rv$dna_contrast2_down_num,
+                               cross.area = rv$dna_up_donw,
+                               scaled = TRUE,
+                               col = c("green3", "firebrick"),
+                               cex = rep(2, 3))
+      rv$venn_diagram1_dna <- grid.arrange(gTree(children = p1), top = textGrob("Trt2-Trt1 Up Trt3-Trt2 Down",gp = gpar(fontsize = 18)))
+    })
+      
+    output$display_venn_diagram2_dna <- renderPlot({
+      p2 <- draw.pairwise.venn(area1 = rv$dna_contrast1_down_num,
+                                       area2 = rv$dna_contrast2_up_num,
+                                       cross.area = rv$dna_down_up,
+                                       scaled = TRUE,
+                                       col = c("firebrick", "green3"),
+                                       cex = rep(2, 3))
+      rv$venn_diagram2_dna <- grid.arrange(gTree(children = p2), top = textGrob("Trt2-Trt1 Down Trt3-Trt2 Up",gp = gpar(fontsize = 18)))
+    })
+    
     rv$change_in_methyl_heatmap <-  two_column_heatmap(rv$joined_2contrasts,
                                                              gene,
                                                              methyl_diff_1,
@@ -2491,9 +2592,39 @@ server <- function(input, output, session) {
     p <- ggplotly(rv$change_in_methyl_heatmap) %>% 
       layout(height = 800, width = 800)
     output$change_in_methyl_plot <- renderPlotly({print(p)})
+    }
   })
   
+  # update change_in_methyl_heatmap title and x tick
+  observeEvent(input$change_in_methyl_plot_title,{
+    if (!is.null(rv$change_in_methyl_heatmap)) {
+      rv$change_in_methyl_heatmap <- rv$change_in_methyl_heatmap +
+        ggtitle(input$change_in_methyl_plot_title)
+      p <- ggplotly(rv$change_in_methyl_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_methyl_plot <- renderPlotly({print(p)})
+    }
+  })
   
+  observeEvent(input$change_in_methyl_plot_x_text_1,{
+    if (!is.null(rv$change_in_methyl_heatmap)) {
+      rv$change_in_methyl_heatmap <- rv$change_in_methyl_heatmap +
+        scale_x_discrete(labels = c(input$change_in_methyl_plot_x_text_1, input$change_in_methyl_plot_x_text_2))
+      p <- ggplotly(rv$change_in_methyl_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_methyl_plot <- renderPlotly({print(p)})
+    }
+  })
+  
+  observeEvent(input$change_in_methyl_plot_x_text_2,{
+    if (!is.null(rv$change_in_methyl_heatmap)) {
+      rv$change_in_methyl_heatmap <- rv$change_in_methyl_heatmap +
+        scale_x_discrete(labels = c(input$change_in_methyl_plot_x_text_1, input$change_in_methyl_plot_x_text_2))
+      p <- ggplotly(rv$change_in_methyl_heatmap) %>% 
+      layout(height = 800, width = 800)
+    output$change_in_methyl_plot <- renderPlotly({print(p)})
+    }
+  })
   
   output$download_change_in_methyl_plot <- downloadHandler(
     filename = function() {
@@ -2522,8 +2653,34 @@ server <- function(input, output, session) {
                 file_path2, 
                 row.names = FALSE)
       
+      file_path3 <- paste(input$project_name,
+                          "_dna_venn_up_donw.tiff",
+                          sep = "")
+      tiff(filename = file_path3,
+           height = 4,
+           width = 5,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      grid.draw(rv$venn_diagram1_dna)
+      dev.off()
+      
+      file_path4 <- paste(input$project_name,
+                          "_dna_venn_donw_up.tiff",
+                          sep = "")
+      tiff(filename = file_path4,
+           height = 4,
+           width = 5,
+           units = 'in',
+           res = 300,
+           compression = "lzw+p")
+      grid.draw(rv$venn_diagram2_dna)
+      dev.off()
+      
       fs <- c(file_path1,
-              file_path2)
+              file_path2,
+              file_path3,
+              file_path4)
       zip(zipfile = fname, 
           files = fs)
     },
