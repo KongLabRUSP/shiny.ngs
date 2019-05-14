@@ -1042,71 +1042,86 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               tabPanel("Plot Data",
                                        wellPanel(
                                          tags$h3("Data Preparation"),
+                                         hr(),
+                                         tags$h4("From RNA table:"),
                                          fluidRow(
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "rna_gene_col_selected_rna_vs_dna",
-                                                              label = "From RNA table select gene column:",
+                                                              label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "logfoldchange_col_selected_rna_vs_dna",
-                                                              label = "Select RNA expression difference column:",
+                                                              label = "Select expression difference column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL))),
+                                         hr(),
+                                         tags$h4("From DNA table:"),
                                          fluidRow(
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "dna_gene_col_selected_rna_vs_dna",
-                                                              label = "From DNA table select gene column:",
+                                                              label = "Select gene column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "methyl_diff_col_selected_rna_vs_dna",
-                                                              label = "Select DNA methylation ratio difference column:",
+                                                              label = "Select methylation ratio difference column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
                                            
-                                           column(3,
+                                           column(4,
                                                   selectInput(inputId = "region_col_selected_rna_vs_dna",
                                                               label = "Select region column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
-                                                              selected = NULL)),
+                                                              selected = NULL))),
+                                         hr(),
+                                         fluidRow(
                                            column(2,
                                                   actionButton(inputId = "inner_join_rna_vs_dna",
                                                                label = "Inner Join RNA and DNA table"))),
                                          fluidRow(
-                                           column(3,
+                                           column(8,
+                                                  tags$h4("Inner Joined Table Summary:"),
+                                                  verbatimTextOutput("display_summary_inner_joined_rna_dna"))),
+                                         hr(),
+                                         fluidRow(
+                                           column(4,
                                                   textInput(inputId = "region_name_contian_rna_vs_dna",
                                                             label = "(Optional) Rename region that contain:")),
-                                           column(3,
+                                           column(4,
                                                   textInput(inputId = "region_new_name_rna_vs_dna",
                                                             label = "As:")),
                                            column(2,
                                                   actionButton(inputId = "rename_region_rna_vs_dna",
                                                                label = "Apply"))),
+                                         hr(),
                                          fluidRow(
-                                           column(7,
-                                                  tags$h4("Inner Joined Table Summary:"),
-                                                  verbatimTextOutput("display_summary_inner_joined_rna_dna")))),
+                                           # column(4,
+                                           #        selectInput())
+                                                  )),
                                        wellPanel(
                                          tags$h3("Starburst Plot"),
                                          fluidRow(
                                            column(3,
                                                   numericInput(inputId = "starburst_rna_hline",
                                                                label = "Enter RNA expression diff threshold",
-                                                               value = 0.1)),
+                                                               value = 0.1),
+                                                  bsTooltip(id = "starburst_rna_hline", title = "Hit generate button to update")),
                                            column(3,
                                                   numericInput(inputId = "starburst_dna_vline",
                                                                label = "Enter DNA methylation % diff threshold",
-                                                               value = 10)),
+                                                               value = 10),
+                                                  bsTooltip(id = "starburst_dna_vline", title = "Hit generate button to update")),
                                            column(3,
                                                   textInput(inputId = "starburst_title",
                                                             label = "Enter plot title",
-                                                            value = "DNA vs RNA: starburst plot")),
+                                                            value = "DNA vs RNA: starburst plot"),
+                                                  bsTooltip(id = "starburst_title", title = "Plot will update automatrically")),
                                            column(1,
                                                   actionButton(inputId = "generate_starburst_plot_rna_vs_dna",
                                                                label = "Generate Plot")),
@@ -2531,7 +2546,7 @@ server <- function(input, output, session) {
       showNotification("Please choose the correct columns for contrast2 and try again",
                        type = "error",
                        duration = NULL)}  
-    # output$display_summary_inner_joined_2contrasts <- renderPrint({summary(contrast1)})
+    
     
     rv$joined_2contrasts <- try(
       inner_join(contrast1, contrast2, by = "gene") %>%
@@ -2796,6 +2811,20 @@ server <- function(input, output, session) {
       layout(height = 800, width = 800)
     output$starburst_plot <- renderPlotly({print(p1)})
   })
+  
+  
+  observeEvent(input$input$starburst_title,{
+    if (!is.null(rv$starburst_plot)) {
+      rv$starburst_plot <- rv$starburst_plot +
+        ggtitle(input$starburst_title)
+
+      p1 <- ggplotly(rv$starburst_plot,
+                   tooltip = c("text", "x", "y")) %>%
+      layout(height = 800, width = 800)
+      output$starburst_plot <- renderPlotly({print(p1)})
+    }
+  })
+  
   
   
   output$download_starburst_plot_and_joined_table <- downloadHandler(
