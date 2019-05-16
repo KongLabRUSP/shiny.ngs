@@ -1098,11 +1098,17 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                             label = "As:")),
                                            column(2,
                                                   actionButton(inputId = "rename_region_rna_vs_dna",
-                                                               label = "Apply"))),
+                                                               label = "Apply"),
+                                                  bsTooltip(id = "rename_region_rna_vs_dna", title = "Rename one at a time, case sensitive, hit Inner Join button to start over"))),
                                          hr(),
                                          fluidRow(
-                                           # column(4,
-                                           #        selectInput())
+                                           column(8,
+                                                  selectInput(inputId = "region_selcted_dna_rna",
+                                                              label = "Include region:",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL),
+                                                  bsTooltip(id = "region_selcted_dna_rna", title = "Filter region to plot, the inner joined table will change too", placement = "right"))
                                                   )),
                                        wellPanel(
                                          tags$h3("Starburst Plot"),
@@ -2779,9 +2785,16 @@ server <- function(input, output, session) {
       rv$joined_rna_dna %>%
         mutate(region = as.factor(region)) -> rv$joined_rna_dna
       output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
+      
+      
+      updateSelectInput(session,
+                        inputId = "region_selcted_dna_rna",
+                        label = "Select region to plot:",
+                        choices =  levels(rv$joined_rna_dna$region),
+                        selected = levels(rv$joined_rna_dna$region))
     }
-    
     })
+  
   
   
   observeEvent(input$rename_region_rna_vs_dna,{
@@ -2794,7 +2807,18 @@ server <- function(input, output, session) {
       mutate(region =  as.factor(region)) -> 
       rv$joined_rna_dna
     output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
-
+    
+    updateSelectInput(session,
+                      inputId = "region_selcted_dna_rna",
+                      label = "Select region to plot:",
+                      choices = levels(rv$joined_rna_dna$region),
+                      selected = levels(rv$joined_rna_dna$region))
+  })
+  
+  observeEvent(input$region_selcted_dna_rna,{
+    rv$joined_rna_dna <- rv$joined_rna_dna %>% 
+        filter(region %in% input$region_selcted_dna_rna) 
+      
   })
   
   observeEvent(input$generate_starburst_plot_rna_vs_dna,{
