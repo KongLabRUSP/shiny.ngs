@@ -221,7 +221,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                 In the \'Sample Name\' column, enter the sample names from your count table. In the \'Sample Label\' column,
                                  give unique sample label for each sample (no duplicates in this column). 
                                 \'Sample Name\' is used to mapping design table with count table, \'Sample Label\' is used as choices for user to select samples and to show in the plots. 
-                                User can think it as renaming each Sample Name with Sample Label'.
+                                User can think it as renaming each Sample Name with Sample Label.
                                 After read in the design table, the app will match design table with count table using \'Sample Name\', 
                                 a warning message box will show and tell user which row in design table is not found in the count table, if there is any."
                                 ,style = "padding-left: 3em"),
@@ -258,12 +258,59 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               
                               h4("1.5 Change In Gene Expression",
                                  style = "padding-left: 2em"), 
-                              p("This tab takes in contrast 1 and contrast 2 result tables (.csv file) from Differential Gene Expression Analysis and returns a two-column heatmap 
-                                of change in gene expression of contrast 1 and contrast 2. User has to select the gene column, the expression difference (log foldchnage) column, the p-value column from the two tables, and enter
-                                the p-value threshold and absolute log foldchage threshold. The App filters out the significant genes based on the provided threshold seperately for each 
-                                table and then inner join the two tables to plot the heatmap.",
-                                style = "padding-left: 3em")),
-
+                              p("This tab takes in contrast 1 and contrast 2 result tables (.csv file) from Differential Gene Expression Analysis and returns two venn diagrams and a two-column heatmap 
+                                of change in gene expression of contrast 1 and contrast 2. User has to select the gene name column, the expression difference (log foldchnage) column, the p-value column, and enter
+                                the absolute log foldchage threshold and p-value threshold, seperately for each table. The App filters out the significant genes based on the provided threshold seperately for each 
+                                table and then inner join the two tables based on gene name column to plot the venn diagrams and the heatmap. The app will give warning message if there is no gene left after filtering.",
+                                style = "padding-left: 3em"),
+                              h3("2. DNA Methylseq Analysis", 
+                                 style = "padding-left: 1em"),
+                              
+                              h4("2.1 Read In Data",
+                                 style = "padding-left: 2em"),
+                              p("This tab takes in annotated DNA methylation table with N(reads) and X(read coverage), either tab or comma sepearted. 
+                                Besides the reads and read coverage column, the input table should also include gene name, CpG, region column. The input table will be used in the following Exploratory Analysis and the DMR Analysis: DSS. ",
+                                style = "padding-left: 3em"),
+                              
+                              h4("2.2 Exploratory Analysis",
+                                 style = "padding-left: 2em"),
+                              p("The tab gives 3 descripative plots of the DNA table. An annotation pie chart takes in the region column selected by the user, and plots the portion/percentage of each annotated region, 
+                                Some regions are combined to give a clear plot. A histogram of CpG facet by region takes in the region and CpG column selected by the user, and plots the distribution of CpG numbers for each region. The last plot, methylation percentage
+                                by region, takes in the region, the CpG column, the N and X columns seleted by the user, then plot the average methylation ratio by region, colored by treatment.",
+                                style = "padding-left: 3em"),
+                              
+                              h4("2.3 DMR Analysis: DSS",
+                                 style = "padding-left: 2em"),
+                              p("This tab uses DSS package to do pairwise difference-in-methylation-ratio analysis (DMR). User please refer to the instruction in the Data Preparation section to construct BSseqData object, which is later used in 
+                                function DMLtest to perform statistical test of differntially methylated loci (DML).",
+                                style = "padding-left: 3em"),
+                              
+                              h4("2.4 Change In Methylation Ratio",
+                                 style = "padding-left: 2em"),
+                              p("This tab takes in contrast 1 and contrast 2 result tables (.csv file) from DMR Analysis: DSS. Like Change In Gene Expression tab, this tab returns two venn diagrams and a two-column heatmap of change in methylation ratio difference
+                                of contrast 1 and contrast 2. User need to select the gene identifier column (chr_start, the first column in DSS result table), the DNA methylation ratio difference column, and the p-value column, and enter the absolute 
+                                methylation ratio difference threshold and p-value threshold, seperately for each table. The App filters out the significant genes based on the provided threshold seperately for each 
+                                table and then inner join the two tables based on gene identifier column to plot the venn diagrams and the heatmap. User could rename the region column and choose the region they want to plot. The inner joined 
+                                table will change accordingly. Please select at least one region. The app will give a warning message if there is no gene left after filtering.",
+                                style = "padding-left: 3em"),
+                              
+                              h3("3. RNA vs DNA Analysis", 
+                                 style = "padding-left: 1em"),
+                              h4("3.1 Read In Data",
+                                 style = "padding-left: 2em"),
+                              p("This tab takes in an RNA DE analysis result table and a DNA DMR analysis result table for a starburst plot. Note, there is no threshold filtering for the two table, all the genes in the two table will be plotted after inner joining. 
+                                So user might want to read in the tables that are already filtered to only significant genes or other criteria of interest.",
+                                style = "padding-left: 3em"),
+                              
+                              h4("3.2 Plot Data",
+                                 style = "padding-left: 2em"),
+                              p("This tab gives a starburst plot of inner joined RNA and DNA table by gene name, colored by region. User need to select the gene name columns and expression difference column for RNA table, and 
+                                 gene name column, methylation ratio column and region column for DNA table. To make the color legend clearer in the plot, after inner join, user could rename the region and select the region of insterest to plot. Please select at least one region.
+                                The app will give a warning message if there is no gene left to plot.",
+                                style = "padding-left: 3em")
+                              
+                              ),
+ 
                     ## ---------------- RNA seq analysis -----------------
                     tabItem(tabName = "rna-seq_analysis",
                             tabsetPanel(
@@ -896,7 +943,23 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(4,
                                                   selectInput(inputId = "gene_col_selected_dna_contrast_1",
-                                                              label = "Select gene column:",
+                                                              label = "Select gene identifier column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL),
+                                                  bsTooltip(id = "gene_col_selected_dna_contrast_1",
+                                                            title = "The unique column: chr_start")),
+                                           column(4,
+                                                  selectInput(inputId = "gene_name_col_selected_dna_contrast_1",
+                                                              label = "Select gene name column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL),
+                                                  bsTooltip(id = "gene_name_col_selected_dna_contrast_1",
+                                                            title = "The gene name column")),
+                                           column(4,
+                                                  selectInput(inputId = "region_col_selected_dna_contrast_1",
+                                                              label = "Select region column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL))
@@ -935,7 +998,15 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(4,
                                                   selectInput(inputId = "gene_col_selected_dna_contrast_2",
-                                                              label = "Select gene column:",
+                                                              label = "Select gene identifier column:",
+                                                              choices = NULL,
+                                                              multiple = FALSE,
+                                                              selected = NULL),
+                                                  bsTooltip(id = "gene_col_selected_dna_contrast_2",
+                                                            title = "The unique column: chr_start")),
+                                           column(4,
+                                                  selectInput(inputId = "region_col_selected_dna_contrast_2",
+                                                              label = "Select region column:",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL))
@@ -977,7 +1048,33 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(7,
                                                   tags$h4("Inner Joined Table Summary:"),
-                                                  verbatimTextOutput("display_summary_inner_joined_2contrasts")))),
+                                                  verbatimTextOutput("display_summary_inner_joined_2contrasts"))),
+                                         hr(),
+                                         fluidRow(
+                                           column(4,
+                                                  textInput(inputId = "region_name_contian_dna",
+                                                            label = "(Optional) Rename region that contain:")),
+                                           column(4,
+                                                  textInput(inputId = "region_new_name_dna",
+                                                            label = "As:")),
+                                           column(2,
+                                                  actionButton(inputId = "rename_region_dna",
+                                                               label = "Apply"),
+                                                  bsTooltip(id = "rename_region_dna", title = "Rename one at a time, case sensitive, hit Inner Join button to start over"))
+                                         ),
+                                         hr(),
+                                         fluidRow(
+                                           column(4,
+                                                  selectInput(inputId = "region_selcted_dna",
+                                                              label = "Include region:",
+                                                              choices = NULL,
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(2,
+                                                  actionButton(inputId = "filter_region_dna",
+                                                               label = "Apply"),
+                                                  bsTooltip(id = "filter_region_dna", title = "Filter the inner joined table by region, hit Inner Join button to start over"))
+                                         )),
                                        wellPanel(
                                          tags$h3("Change-in-Methyl-Ratio Heatmap"),
                                          fluidRow(
@@ -1128,12 +1225,14 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                             label = "Enter plot title",
                                                             value = "DNA vs RNA: starburst plot"),
                                                   bsTooltip(id = "starburst_title", title = "Plot will update automatrically")),
-                                           column(1,
+                                           column(2,
                                                   actionButton(inputId = "generate_starburst_plot_rna_vs_dna",
                                                                label = "Generate Plot")),
-                                           column(1,
+                                           column(2,
                                                   downloadButton(outputId = "download_starburst_plot_and_joined_table",
-                                                                 label = "Download Results"))),
+                                                                 label = "Download Results"),
+                                                  bsTooltip(id = "download_starburst_plot_and_joined_table",
+                                                            title = "Including inner-joined table and starburst plot"))),
                                          hr(),
                                          fluidRow(
                                            column(7,
@@ -1981,6 +2080,7 @@ server <- function(input, output, session) {
       rv$rna_contrast2_down_num <-  nrow(filter(contrast2, log_foldchange_2 < 0))
       rv$rna_up_donw <- nrow(filter(rv$joined_2contrasts_rna, log_foldchange_1 > 0))
       rv$rna_down_up <- nrow(filter(rv$joined_2contrasts_rna, log_foldchange_1 < 0))
+      
       output$display_summary_inner_joined_2contrasts_rna <- renderPrint({summary(rv$joined_2contrasts_rna)})
     }
     
@@ -2486,7 +2586,17 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
     updateSelectInput(session,
                       inputId = "gene_col_selected_dna_contrast_1",
-                      label = "Select gene column:",
+                      label = "Select gene identifier column:",
+                      choices = colnames(rv$tb_dna_contrast_1),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "gene_name_col_selected_dna_contrast_1",
+                      label = "Select gene name column:",
+                      choices = colnames(rv$tb_dna_contrast_1),
+                      selected = NULL)
+    updateSelectInput(session,
+                      inputId = "region_col_selected_dna_contrast_1",
+                      label = "Select region column:",
                       choices = colnames(rv$tb_dna_contrast_1),
                       selected = NULL)
     updateSelectInput(session,
@@ -2511,7 +2621,7 @@ server <- function(input, output, session) {
                     options = list(scrollX = TRUE))})
     updateSelectInput(session,
                       inputId = "gene_col_selected_dna_contrast_2",
-                      label = "Select gene column:",
+                      label = "Select gene identifier column:",
                       choices = colnames(rv$tb_dna_contrast_2),
                       selected = NULL)
     updateSelectInput(session,
@@ -2525,38 +2635,47 @@ server <- function(input, output, session) {
                       choices = colnames(rv$tb_dna_contrast_2))})
   
   observeEvent(input$inner_join_2contrasts,{
-    contrast1 <- try(rv$tb_dna_contrast_1 %>%
+    rv$contrast1 <- try(rv$tb_dna_contrast_1 %>%
                        filter(!!as.name(input$pval_col_selected_dna_contrast_1) < input$change_in_dmr_p_thresh1 &
                               abs(!!as.name(input$methyl_diff_dna_contrast_1)) >=  input$change_in_dmr_diff_thresh1) %>% 
                        select(input$gene_col_selected_dna_contrast_1,
-                              input$methyl_diff_dna_contrast_1) %>%
+                              input$gene_name_col_selected_dna_contrast_1,
+                              input$methyl_diff_dna_contrast_1,
+                              input$region_col_selected_dna_contrast_1) %>%
                        rename("gene" = input$gene_col_selected_dna_contrast_1,
-                              "methyl_diff_1" = input$methyl_diff_dna_contrast_1),
+                              "gene_name" = input$gene_name_col_selected_dna_contrast_1,
+                              "methyl_diff_1" = input$methyl_diff_dna_contrast_1,
+                              "region" = input$region_col_selected_dna_contrast_1),
                      silent = TRUE)
     
-    if (inherits(contrast1, "try-error")) {
+    if (inherits(rv$contrast1, "try-error")) {
       showNotification("Please choose the correct columns for contrast1 and try again",
                        type = "error",
                        duration = NULL)}  
     
-    contrast2 <- try(rv$tb_dna_contrast_2  %>%
+    rv$contrast2 <- try(rv$tb_dna_contrast_2  %>%
                        filter(!!as.name(input$pval_col_selected_dna_contrast_2) < input$change_in_dmr_p_thresh2 &
                               abs(!!as.name(input$methyl_diff_dna_contrast_2)) >=  input$change_in_dmr_diff_thresh2) %>% 
                        select(input$gene_col_selected_dna_contrast_2,
-                              input$methyl_diff_dna_contrast_2) %>%
+                              input$methyl_diff_dna_contrast_2,
+                              input$region_col_selected_dna_contrast_2) %>%
                        rename("gene" = input$gene_col_selected_dna_contrast_2,
-                              "methyl_diff_2" = input$methyl_diff_dna_contrast_2),
+                              "methyl_diff_2" = input$methyl_diff_dna_contrast_2,
+                              "region" = input$region_col_selected_dna_contrast_2),
                      silent = TRUE)
     
-    if (inherits(contrast1, "try-error")) {
+    if (inherits(rv$contrast2, "try-error")) {
       showNotification("Please choose the correct columns for contrast2 and try again",
                        type = "error",
                        duration = NULL)}  
     
     
     rv$joined_2contrasts <- try(
-      inner_join(contrast1, contrast2, by = "gene") %>%
-        filter((methyl_diff_1*methyl_diff_2) < 0),
+      inner_join(rv$contrast1, rv$contrast2, by = "gene") %>%
+        filter((methyl_diff_1*methyl_diff_2) < 0) %>% 
+        select(gene_name, methyl_diff_1, methyl_diff_2, region) %>% 
+        rename(gene = gene_name) %>% 
+        mutate(region = as.factor(region)),
       silent = T)
 
     if (inherits(rv$joined_2contrasts, "try-error")) {
@@ -2565,16 +2684,58 @@ server <- function(input, output, session) {
                        duration = NULL)
 
     }else{
-      rv$dna_contrast1_up_num <-  nrow(filter(contrast1, methyl_diff_1 > 0))
-      rv$dna_contrast1_down_num <-  nrow(filter(contrast1, methyl_diff_1 < 0))
-      rv$dna_contrast2_up_num <-  nrow(filter(contrast2, methyl_diff_2 > 0))
-      rv$dna_contrast2_down_num <-  nrow(filter(contrast2, methyl_diff_2 < 0))
-      rv$dna_up_donw <- nrow(filter(rv$joined_2contrasts, methyl_diff_1 > 0))
-      rv$dna_down_up <- nrow(filter(rv$joined_2contrasts, methyl_diff_1 < 0))
+      
       output$display_summary_inner_joined_2contrasts <- renderPrint({summary(rv$joined_2contrasts)})
+      
+      updateSelectInput(session,
+                        inputId = "region_selcted_dna",
+                        label = "Select region to plot:",
+                        choices =  levels(rv$joined_2contrasts$region),
+                        selected = NULL)
     }
     
     })
+
+  
+  observeEvent(input$rename_region_dna,{
+    
+    rv$contrast1 <- rv$contrast1 %>% 
+      mutate(region = as.character(region)) %>% 
+      mutate(region = replace(region, str_detect(region, input$region_name_contian_dna), input$region_new_name_dna))
+    
+    rv$contrast2 <- rv$contrast2 %>% 
+      mutate(region = as.character(region)) %>% 
+      mutate(region = replace(region, str_detect(region, input$region_name_contian_dna), input$region_new_name_dna))
+    
+    rv$joined_2contrasts <- rv$joined_2contrasts %>%
+      mutate(region = as.character(region)) %>% 
+      mutate(region = replace(region, str_detect(region, input$region_name_contian_dna), input$region_new_name_dna)) %>% 
+      mutate(region = as.factor(region))
+    
+    
+    updateSelectInput(session,
+                      inputId = "region_selcted_dna",
+                      label = "Select region to plot:",
+                      choices =  levels(rv$joined_2contrasts$region),
+                      selected = NULL)
+    
+    output$display_summary_inner_joined_2contrasts <- renderPrint({summary(rv$joined_2contrasts)})
+  })
+  
+  
+  observeEvent(input$filter_region_dna,{
+    rv$contrast1 <- rv$contrast1 %>% 
+      filter(region %in% input$region_selcted_dna)
+    
+    rv$contrast2 <- rv$contrast2 %>% 
+      filter(region %in% input$region_selcted_dna)
+    
+    rv$joined_2contrasts <- rv$joined_2contrasts %>% 
+      filter(region %in% input$region_selcted_dna) %>% 
+      droplevels()
+    
+  output$display_summary_inner_joined_2contrasts <- renderPrint({summary(rv$joined_2contrasts)})
+  })
   
   observeEvent(input$generate_change_in_methyl_plot,{
     if (nrow(rv$joined_2contrasts) == 0) {
@@ -2582,6 +2743,14 @@ server <- function(input, output, session) {
                        type = "error",
                        duration = NULL)
     } else {
+      
+      rv$dna_contrast1_up_num <-  nrow(filter(rv$contrast1, methyl_diff_1 > 0))
+      rv$dna_contrast1_down_num <-  nrow(filter(rv$contrast1, methyl_diff_1 < 0))
+      rv$dna_contrast2_up_num <-  nrow(filter(rv$contrast2, methyl_diff_2 > 0))
+      rv$dna_contrast2_down_num <-  nrow(filter(rv$contrast2, methyl_diff_2 < 0))
+      rv$dna_up_donw <- nrow(filter(rv$joined_2contrasts, methyl_diff_1 > 0))
+      rv$dna_down_up <- nrow(filter(rv$joined_2contrasts, methyl_diff_1 < 0))
+      
       output$display_venn_diagram1_dna <- renderPlot({
       p1 <- draw.pairwise.venn(area1 = rv$dna_contrast1_up_num,
                                area2 = rv$dna_contrast2_down_num,
@@ -2791,7 +2960,7 @@ server <- function(input, output, session) {
                         inputId = "region_selcted_dna_rna",
                         label = "Select region to plot:",
                         choices =  levels(rv$joined_rna_dna$region),
-                        selected = levels(rv$joined_rna_dna$region))
+                        selected = NULL)
     }
     })
   
@@ -2812,7 +2981,7 @@ server <- function(input, output, session) {
                       inputId = "region_selcted_dna_rna",
                       label = "Select region to plot:",
                       choices = levels(rv$joined_rna_dna$region),
-                      selected = levels(rv$joined_rna_dna$region))
+                      selected = NULL)
   })
   
   observeEvent(input$region_selcted_dna_rna,{
@@ -2822,7 +2991,12 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$generate_starburst_plot_rna_vs_dna,{
-    rv$starburst_plot <- starburst(rv$joined_rna_dna,
+    if (nrow(rv$joined_rna_dna == 0)) {
+      showNotification("There is no genes left to plot",
+                       type = "error",
+                       duration = NULL)
+    }else {
+      rv$starburst_plot <- starburst(rv$joined_rna_dna,
                                    gene,
                                    RNA_exp_diff,
                                    DNA_methyl_diff,
@@ -2834,6 +3008,7 @@ server <- function(input, output, session) {
                    tooltip = c("text", "x", "y")) %>%
       layout(height = 800, width = 800)
     output$starburst_plot <- renderPlotly({print(p1)})
+    }
   })
   
   
