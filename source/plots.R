@@ -114,7 +114,7 @@ two_column_heatmap <- function(df,
     as.tibble() %>% 
     mutate(gene_reorder = fct_reorder(!!gene_col, !!diff_1)) %>% 
     select(gene_reorder, !!diff_1, !!diff_2)
-  #colnames(df) <- c("gene_reorder", x_text_1, x_text_2)
+  
   df <- df %>% 
     gather(key = "contrast", value = "diff", -gene_reorder)
   
