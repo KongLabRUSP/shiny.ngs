@@ -304,8 +304,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               
                               h4("3.2 Plot Data",
                                  style = "padding-left: 2em"),
-                              p("This tab gives a starburst plot of inner joined RNA and DNA table by gene name, colored by region. User need to select the gene name columns and expression difference column for RNA table, and 
-                                 gene name column, methylation ratio column and region column for DNA table. To make the color legend clearer in the plot, after inner join, user could rename the region and select the region of insterest to plot. Please select at least one region.
+                              p("This tab gives a starburst plot of inner joined RNA and DNA table by gene name, colored by region. User need to select the gene name column and expression difference column for RNA table, and 
+                                 gene name column, methylation ratio column and region column for DNA table. To make the color legend clearer in the plot, after inner joinning two table, user could rename the region and filter the region of insterest to plot. Please select at least one region.
                                 The app will give a warning message if there is no gene left to plot.",
                                 style = "padding-left: 3em")
                               
@@ -1046,7 +1046,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                                label = "Inner Join Contrast 1 and Contrast 2 table"))
                                          ),
                                          fluidRow(
-                                           column(7,
+                                           column(9,
                                                   tags$h4("Inner Joined Table Summary:"),
                                                   verbatimTextOutput("display_summary_inner_joined_2contrasts"))),
                                          hr(),
@@ -1199,13 +1199,17 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                   bsTooltip(id = "rename_region_rna_vs_dna", title = "Rename one at a time, case sensitive, hit Inner Join button to start over"))),
                                          hr(),
                                          fluidRow(
-                                           column(8,
+                                           column(4,
                                                   selectInput(inputId = "region_selcted_dna_rna",
                                                               label = "Include region:",
                                                               choices = NULL,
                                                               multiple = TRUE,
-                                                              selected = NULL),
-                                                  bsTooltip(id = "region_selcted_dna_rna", title = "Filter region to plot, the inner joined table will change too", placement = "right"))
+                                                              selected = NULL)),
+                                           column(4,
+                                                  actionButton(inputId = "filter_region_dna_rna",
+                                                               label = "Apply"),
+                                                  bsTooltip(id = "filter_region_dna_rna", title = "Filter the inner joined table by region, hit Inner Join button to start over")
+                                                  )
                                                   )),
                                        wellPanel(
                                          tags$h3("Starburst Plot"),
@@ -2625,6 +2629,11 @@ server <- function(input, output, session) {
                       choices = colnames(rv$tb_dna_contrast_2),
                       selected = NULL)
     updateSelectInput(session,
+                      inputId = "region_col_selected_dna_contrast_2",
+                      label = "Select region column:",
+                      choices = colnames(rv$tb_dna_contrast_2),
+                      selected = NULL)
+    updateSelectInput(session,
                       inputId = "methyl_diff_dna_contrast_2",
                       label = "Select DNA methylation ratio difference column:",
                       choices = colnames(rv$tb_dna_contrast_2),
@@ -2661,7 +2670,7 @@ server <- function(input, output, session) {
                               input$region_col_selected_dna_contrast_2) %>%
                        rename("gene" = input$gene_col_selected_dna_contrast_2,
                               "methyl_diff_2" = input$methyl_diff_dna_contrast_2,
-                              "region" = input$region_col_selected_dna_contrast_2),
+                              "region2" = input$region_col_selected_dna_contrast_2),
                      silent = TRUE)
     
     if (inherits(rv$contrast2, "try-error")) {
@@ -2704,8 +2713,8 @@ server <- function(input, output, session) {
       mutate(region = replace(region, str_detect(region, input$region_name_contian_dna), input$region_new_name_dna))
     
     rv$contrast2 <- rv$contrast2 %>% 
-      mutate(region = as.character(region)) %>% 
-      mutate(region = replace(region, str_detect(region, input$region_name_contian_dna), input$region_new_name_dna))
+      mutate(region2 = as.character(region2)) %>% 
+      mutate(region2 = replace(region2, str_detect(region2, input$region_name_contian_dna), input$region_new_name_dna))
     
     rv$joined_2contrasts <- rv$joined_2contrasts %>%
       mutate(region = as.character(region)) %>% 
@@ -2724,11 +2733,11 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$filter_region_dna,{
-    rv$contrast1 <- rv$contrast1 %>% 
+    rv$contrast1 <- rv$contrast1 %>%
       filter(region %in% input$region_selcted_dna)
-    
-    rv$contrast2 <- rv$contrast2 %>% 
-      filter(region %in% input$region_selcted_dna)
+
+    rv$contrast2 <- rv$contrast2 %>%
+      filter(region2 %in% input$region_selcted_dna)
     
     rv$joined_2contrasts <- rv$joined_2contrasts %>% 
       filter(region %in% input$region_selcted_dna) %>% 
@@ -2967,14 +2976,16 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$rename_region_rna_vs_dna,{
-    rv$joined_rna_dna %>%
+    rv$joined_rna_dna <- rv$joined_rna_dna %>%
       mutate(region = as.character(region)) %>%
-      mutate(region = replace(region,
-                              str_detect(region,
-                                         input$region_name_contian_rna_vs_dna),
-                              input$region_new_name_rna_vs_dna)) %>%
-      mutate(region =  as.factor(region)) -> 
-      rv$joined_rna_dna
+      mutate(region = replace(
+        region,
+        str_detect(region,
+                   input$region_name_contian_rna_vs_dna),
+        input$region_new_name_rna_vs_dna
+      )) %>%
+      mutate(region =  as.factor(region))
+    
     output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
     
     updateSelectInput(session,
@@ -2984,14 +2995,18 @@ server <- function(input, output, session) {
                       selected = NULL)
   })
   
-  observeEvent(input$region_selcted_dna_rna,{
-    rv$joined_rna_dna <- rv$joined_rna_dna %>% 
-        filter(region %in% input$region_selcted_dna_rna) 
+  observeEvent(input$filter_region_dna_rna,{
+    
+    rv$joined_rna_dna <- rv$joined_rna_dna %>%
+      filter(region %in% input$region_selcted_dna_rna) %>% 
+      droplevels()
+    
+    output$display_summary_inner_joined_rna_dna <- renderPrint({summary(rv$joined_rna_dna)})
       
   })
   
   observeEvent(input$generate_starburst_plot_rna_vs_dna,{
-    if (nrow(rv$joined_rna_dna == 0)) {
+    if (nrow(rv$joined_rna_dna) == 0) {
       showNotification("There is no genes left to plot",
                        type = "error",
                        duration = NULL)
