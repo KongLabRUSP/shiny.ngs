@@ -113,16 +113,17 @@ two_column_heatmap <- function(df,
   df <- df %>% 
     as.tibble() %>% 
     mutate(gene_reorder = fct_reorder(!!gene_col, !!diff_1)) %>% 
-    select(gene_reorder, !!diff_1, !!diff_2)
+    select(gene_reorder, !!diff_1, !!diff_2) %>% 
+    rename(gene = gene_reorder)
   
   df <- df %>% 
-    gather(key = "contrast", value = "diff", -gene_reorder)
+    gather(key = "contrast", value = "diff", -gene)
   
  
   
   ggplot(data = df,
        aes(x = contrast, 
-           y = gene_reorder )) +
+           y = gene )) +
   geom_tile(aes(fill = diff), color = "white") +
   scale_fill_gradient2(low = "red", high = "green", mid = "grey", midpoint = 0) +
   labs(title = title) +
