@@ -8,15 +8,6 @@
 # fixed abbb bug
 
 
-
-
-
-
-
-
-
-
-
 # Reference: https://www.nextflow.io/docs/latest/getstarted.html
 ## Shinyapps.io detects and installs packages for you automatically when you call deployApp(). 
 ## Do not need, nor should have any calls to install.packages() as below anywhere in your source code.
@@ -191,7 +182,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                       
                       ## ---------- Introduction ------------
                       tabItem(tabName = "introduction",
-                              h2("Introduction of the App",
+                              h2("Introduction to the App",
                                  style = "padding-left: 1em"),
                               p("This interactive web application (NGS pipeline) is developed in R with Shiny to 
                                 (1) Perform explorative analysis on RNA-seq and DNA methylation data
