@@ -103,12 +103,11 @@ bio_packages <- c("DESeq2",
                   "TxDb.Mmusculus.UCSC.mm10.knownGene",
                   "DSS",
                   "farver",
-                  "units",
                   "fgsea",
                   "org.Mm.eg.db",
                   # "NewPackage", # uncomment this line and change the name in duoble quotes to add more package. Add more lines if desire
-                  # "dada2"
-                 )
+                  # "dada2",
+                  "units")
 
 if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocManager::install(setdiff(bio_packages, rownames(installed.packages())), update = F)}
 
