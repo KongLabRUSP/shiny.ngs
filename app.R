@@ -5,7 +5,11 @@
 # changelog
 # May 6, 2019 R Ww.  added scripts for first time installation of needed packages.
 # v1.1 4-17-2019
-# fixed abbb bug
+# 
+
+## 2-5-2021
+# added support for replicates in DNA methyl-seq analysis
+# R Wu
 
 
 # Reference: https://www.nextflow.io/docs/latest/getstarted.html
@@ -84,6 +88,7 @@ cran_packages <- c("shinydashboard",
                    "shinyWidgets",
                    "stringr",
                    "tibble",
+                   "stats",
                    "units",
                    "VennDiagram",
                    "zip",
@@ -1235,6 +1240,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                             # tabItem DNA vs RNA end
                             ))
                     )))
+
+###############################################################################
 
 ## ------------- sssssSERVERrrrrr -------------------
 server <- function(input, output, session) {
@@ -2482,30 +2489,75 @@ server <- function(input, output, session) {
   
   
   
-  ## ----------------------- DSS -------------
+  ## ----------------------- DSS -------------  ## UI at line 860
   fdtdss <- reactive({
     
-    comp1 <- input$dss_comp1
-    comp2 <- input$dss_comp2
-    name1 <- input$dss_comp1_name
-    name2 <- input$dss_comp2_name
+    comp1 <- input$dss_comp1 ## list of columns for group a from user input. N X N X ...
+    comp2 <- input$dss_comp2 ## list of columns for group b from user input. N X N X ...
+    name1 <- input$dss_comp1_name ## group name for group a from user input.
+    name2 <- input$dss_comp2_name ## group name for group b from user input.
+    
+    
     
     rv$dss_w_gene <- rv$dna_table %>% 
       select(input$dss_comp1, input$dss_comp2, input$dss_chr, input$dss_start, input$dss_gene, input$dss_region) %>% 
       drop_na()
-    names(rv$dss_w_gene) <- c("sample1_N", "sample1_X", "sample2_N", "sample2_X", "geneChr", "start", "gene", "region")
+   names(rv$dss_w_gene)[(length(rv$dss_w_gene)-3):length(rv$dss_w_gene)] <- c("geneChr", "start", "gene", "region")
     
-    df1 <- data.frame(chr = rv$dss_w_gene$geneChr,
-                      pos = rv$dss_w_gene$start,
-                      N = rv$dss_w_gene$sample1_N,
-                      X = rv$dss_w_gene$sample1_X)
-    df2 <- data.frame(chr = rv$dss_w_gene$geneChr,
-                      pos = rv$dss_w_gene$start,
-                      N = rv$dss_w_gene$sample2_N,
-                      X = rv$dss_w_gene$sample2_X)
-    frames <- list(df1, df2)
-    names(frames) <- c(name1, name2)
-    bsdata <- makeBSseqData(frames, names(frames))
+    # construct N data.frame instead of only two. 
+    # first need to identify how many items in 
+    
+    # rv$dss_w_gene is the 
+    comp1_samples <- substr(comp1, 1, nchar(comp1)-2)
+    comp1_samples <- comp1_samples[!duplicated(comp1_samples)]
+    
+    comp2_samples <- substr(comp2, 1, nchar(comp2)-2)
+    comp2_samples <- comp2_samples[!duplicated(comp2_samples)]
+    
+    combined_samples <- c(comp1_samples, comp2_samples)
+    
+    sample_list1 <- vector('list', length(comp1))
+    i = 1
+    while (i < length(comp1)) {
+      df_temp <- data.frame(chr = rv$dss_w_gene$geneChr,
+                            pos = rv$dss_w_gene$start,
+                            N = rv$dss_w_gene[[comp1[i]]],
+                            X = rv$dss_w_gene[[comp1[i+1]]]
+      )
+      sample_list1[[i]] <- df_temp
+      i <- i + 2
+    }
+    sample_list1[sapply(sample_list1, is.null)] <- NULL
+    
+    sample_list2 <- vector('list', length(comp2))
+    i = 1
+    while (i < length(comp2)) {
+      df_temp <- data.frame(chr = rv$dss_w_gene$geneChr,
+                            pos = rv$dss_w_gene$start,
+                            N = rv$dss_w_gene[[comp2[i]]],
+                            X = rv$dss_w_gene[[comp2[i+1]]]
+      )
+      sample_list2[[i]] <- df_temp
+      i <- i + 2
+    }
+    sample_list2[sapply(sample_list2, is.null)] <- NULL
+    
+    bsdata <- makeBSseqData(c(sample_list1, sample_list2), combined_samples)
+    name1 <- comp1_samples
+    name2 <- comp2_samples
+    
+    # 
+    # df1 <- data.frame(chr = rv$dss_w_gene$geneChr,
+    #                   pos = rv$dss_w_gene$start,
+    #                   N = rv$dss_w_gene$sample1_N,
+    #                   X = rv$dss_w_gene$sample1_X)
+    # df2 <- data.frame(chr = rv$dss_w_gene$geneChr,
+    #                   pos = rv$dss_w_gene$start,
+    #                   N = rv$dss_w_gene$sample2_N,
+    #                   X = rv$dss_w_gene$sample2_X)
+    # frames <- list(df1, df2)
+    # names(frames) <- c(name1, name2)
+    # bsdata <- makeBSseqData(frames, names(frames))
     
     # perform DML test, differntially methylated loci (DML) for two group comparisons of bisulfite sequencing (BS-seq)
     # without replicates, must set equal.disp=T
@@ -2515,6 +2567,7 @@ server <- function(input, output, session) {
                    equal.disp = TRUE,
                    smoothing = TRUE, 
                    smoothing.span = 500)
+    names[dml][2:3] <- c(input$dss_comp1_name, input$dss_comp2_name)
     dml
   })
   
@@ -2552,7 +2605,7 @@ server <- function(input, output, session) {
   output$download_dss <- downloadHandler(
     filename = function() {
       paste(input$project_name_dna,
-            "dss_result_table",
+            "_dss_result_table",
             ".csv",
             sep = "")
     },
