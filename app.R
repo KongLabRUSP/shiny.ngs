@@ -1,15 +1,30 @@
-# 
-# Author: Meinizi Zheng Email: meinizi.z@hotmail.com 
-# 
+# This app is used for analyzing RNA-seq and DNA methyl-seq data by Konglab at Rutgers University 
+# Author: Meinizi Zheng 
+# Email: meinizi.z@hotmail.com 
+# Maintenance by R Wu and D Sargsyan
 
-# changelog
-# May 6, 2019 R Ww.  added scripts for first time installation of needed packages.
-# v1.1 4-17-2019
-# 
+## chanage below date if any changes were made to this app. This date will b displayed in the main UI.
+update_date <-"Feb 6, 2021"
+
+
+
+### changelog 
+
+# Feb 6, 2021
+# add descriptions for items in DNA methyl-seq analysis panel.
 
 ## 2-5-2021
 # added support for replicates in DNA methyl-seq analysis
 # R Wu
+
+
+# May 6, 2019 R Wu.  added scripts for first time installation of needed packages.
+# v1.1 4-17-2019
+# 
+
+
+#
+ 
 
 
 # Reference: https://www.nextflow.io/docs/latest/getstarted.html
@@ -189,6 +204,8 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                       tabItem(tabName = "introduction",
                               h2("Introduction to the App",
                                  style = "padding-left: 1em"),
+                              h3("Current version of this App was updated on ", update_date, ". In Rstudio, click Git then Pull for new version.",
+                                style = "padding-left: 2em"), # by RW
                               p("This interactive web application (NGS pipeline) is developed in R with Shiny to 
                                 (1) Perform explorative analysis on RNA-seq and DNA methylation data
                                 (2) Conduct RNA differential expression (DE) analysis with ",
@@ -303,9 +320,9 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                               p("This tab gives a starburst plot of inner joined RNA and DNA table by gene name, colored by region. User need to select the gene name column and expression difference column for RNA table, and 
                                  gene name column, methylation ratio column and region column for DNA table. To make the color legend clearer in the plot, after inner joinning two table, user could rename the region and filter the region of insterest to plot. Please select at least one region.
                                 The app will give a warning message if there is no gene left to plot.",
-                                style = "padding-left: 3em")
-                              
+                                style = "padding-left: 3em"),
                               ),
+                      
  
                     ## ---------------- RNA seq analysis -----------------
                     tabItem(tabName = "rna-seq_analysis",
@@ -746,7 +763,7 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                                             value = "Enter project name")),
                                            column(4,
                                                   bsButton("prj_name_dna_button", label = "", icon = icon("question"),style = "info", size = "extra-small"),
-                                                  bsTooltip(id = "prj_name_dna_button", title = "Will be used in the filenames of the downloaded files", placement = "right"))
+                                                  bsTooltip(id = "prj_name_dna_button", title = "Will be used as base filenames of the downloaded files", placement = "right"))
                                            ),
                                          fluidRow(
                                            column(5,
@@ -824,67 +841,73 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(4,
                                                   selectInput(inputId = "dss_gene",
-                                                              label = "Select the gene column",
+                                                              label = "Select the gene name column (geneid, etc)",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
                                            column(4,
                                                   selectInput(inputId = "dss_chr",
-                                                              label = "Select the chromosome column",
+                                                              label = "Select the chromosome column (chr, seqname, etc)",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL))),
                                          fluidRow(
                                            column(4,
                                                   selectInput(inputId = "dss_start",
-                                                              label = "Select the position(start) column",
+                                                              label = "Select the start position column (start, etc)",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL)),
                                            column(4,
                                                   selectInput(inputId = "dss_region",
-                                                              label = "Select the region(feature) column",
+                                                              label = "Select the region (feature) column (annotation, etc)",
                                                               choices = NULL,
                                                               multiple = FALSE,
                                                               selected = NULL))),
                                          fluidRow(
                                            column(4,
                                                   selectInput(inputId = "dss_comp1",
-                                                              label = "Select the dtN and dtX column for sample 1",
+                                                              label = "Select N and X column(s) for group 1 (for each sample, select N FIRST then X)",
                                                               choices = NULL,
                                                               multiple = TRUE,
                                                               selected = NULL)),
                                            column(4,
                                                   textInput(inputId = "dss_comp1_name",
-                                                            label = "Enter sample name for sample 1",
+                                                            label = "Enter a name for group 1 (eg, treated)",
                                                             value = ""))
                                          ),
                                          fluidRow(
                                            column(4,
                                                   selectInput(inputId = "dss_comp2",
-                                                              label = "Select the dtN and dtX column for sample 2",
+                                                              label = "Select N and X column(s) for group 2 (for each sample, select N FIRST then X)",
                                                               choices = NULL,
                                                               multiple = TRUE,
                                                               selected = NULL)),
                                            column(4,
                                                   textInput(inputId = "dss_comp2_name",
-                                                            label = "Enter sample name for sample 2",
+                                                            label = "Enter a name for group 2 (eg, control)",
                                                             value = ""))
                                          ),
-                                         tags$h4("Set Parameters for DML test"),
+                                         tags$h4("Set Parameters for DML test. Do not change these settings unless you know what you are doing."),
                                          fluidRow(
                                            column(3,
-                                                  selectInput(inputId = "dss_wo_rep",
-                                                              label = "Sample without replicates",
-                                                              choices = c(TRUE,FALSE),
-                                                              multiple = FALSE,
-                                                              selected = TRUE)),
+                                                  checkboxInput(inputId = "dss_wo_rep",
+                                                                label = "No replicates (equal.disp=True in DMLtest)",
+                                                                value = FALSE, width = NULL)),
+                                                  # selectInput(inputId = "dss_wo_rep",
+                                                  #             label = "Sample without replicates? (equal.disp in DMLtest)",
+                                                  #             choices = c("yes" = TRUE,"no" = FALSE),
+                                                  #             multiple = FALSE,
+                                                  #             selected = TRUE)),
                                            column(3,
-                                                  selectInput(inputId = "dss_smoothing",
-                                                              label = "Smoothing",
-                                                              choices = c(TRUE,FALSE),
-                                                              multiple = FALSE,
-                                                              selected = TRUE)),
+                                                  checkboxInput(inputId = "dss_smoothing",
+                                                                label = "Smoothing",
+                                                                value = TRUE, width = NULL)),
+                                                  # selectInput(inputId = "dss_smoothing",
+                                                  #             label = "Smoothing.",
+                                                  #             choices = c(TRUE,FALSE),
+                                                  #             multiple = FALSE,
+                                                  #             selected = TRUE)),
                                            column(3,
                                                   textInput(inputId = "dss_smoothing_span",
                                                             label = "smoothing.span",
@@ -893,12 +916,12 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                                          fluidRow(
                                            column(3,
                                                   selectInput(inputId = "dss_pvalue",
-                                                              label = "P value <",
-                                                              choices = c(0.01, 0.05, 0.1, 0.25),
+                                                              label = "P value cutoff (select 1 to keep all)",
+                                                              choices = c(0.01, 0.05, 0.1, 0.25, 1),
                                                               selected = 0.01)),
                                            column(3,
                                                   selectInput(inputId = "dss_methyl_diff",
-                                                              label = "Obs(diff methyl%) >=",
+                                                              label = "Obs(diff methyl ratio) select 0 to keep all",
                                                               choices = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5),
                                                               selected = 0.1)),
                                            column(2,
@@ -2267,42 +2290,42 @@ server <- function(input, output, session) {
     updateSelectInput(
       session,
       inputId = "dss_chr",
-      label = "Select the chromosome column",
+      label = "Select the chromosome column  (chr, seqname, etc)",
       choices = colnames(rv$dna_table),
       selected = NULL
     )
     updateSelectInput(
       session,
       inputId = "dss_start",
-      label = "Select the position(start) column",
+      label = "Select the start position column (start, etc)",
       choices = colnames(rv$dna_table),
       selected = NULL
     )
     updateSelectInput(
       session,
       inputId = "dss_region",
-      label = "Select the region(feature) column",
+      label = "Select the region (feature) column (annotation, etc)",
       choices = colnames(rv$dna_table),
       selected = NULL
     )
     updateSelectInput(
       session,
       inputId = "dss_gene",
-      label = "Select the gene column",
+      label = "Select the gene name column (geneid, etc)",
       choices = colnames(rv$dna_table),
       selected = NULL
     )
     updateSelectInput(
       session,
       inputId = "dss_comp1",
-      label = "Select the dtN and dtX column for sample 1",
+      label = "Select N and X column(s) for group 1 (for each sample, select N FIRST then X)",
       choices = colnames(rv$dna_table),
       selected = NULL
     )
     updateSelectInput(
       session,
       inputId = "dss_comp2",
-      label = "Select the dtN and dtX column for sample 2",
+      label = "Select N and X column(s) for group 2 (for each sample, select N FIRST then X)",
       choices = colnames(rv$dna_table),
       selected = NULL
     )
@@ -2502,6 +2525,8 @@ server <- function(input, output, session) {
     rv$dss_w_gene <- rv$dna_table %>% 
       select(input$dss_comp1, input$dss_comp2, input$dss_chr, input$dss_start, input$dss_gene, input$dss_region) %>% 
       drop_na()
+    
+    ### below added by R Wu #####################
    names(rv$dss_w_gene)[(length(rv$dss_w_gene)-3):length(rv$dss_w_gene)] <- c("geneChr", "start", "gene", "region")
     
     # construct N data.frame instead of only two. 
@@ -2546,7 +2571,11 @@ server <- function(input, output, session) {
     name1 <- comp1_samples
     name2 <- comp2_samples
     
-    # 
+#### end addition by R Wu ####
+    
+## below original code ### 
+    
+    # names(rv$dss_w_gene) <- c("sample1_N", "sample1_X", "sample2_N", "sample2_X", "geneChr", "start", "gene", "region")
     # df1 <- data.frame(chr = rv$dss_w_gene$geneChr,
     #                   pos = rv$dss_w_gene$start,
     #                   N = rv$dss_w_gene$sample1_N,
@@ -2561,16 +2590,21 @@ server <- function(input, output, session) {
     
     # perform DML test, differntially methylated loci (DML) for two group comparisons of bisulfite sequencing (BS-seq)
     # without replicates, must set equal.disp=T
+    
+##### end commented original code ## 
+    
     dml <- DMLtest(bsdata, 
                    group1 = name1,
                    group2 = name2,
-                   equal.disp = TRUE,
+                   # equal.disp = TRUE,
+                   equal.disp = input$dss_wo_rep, ## R Wu
                    smoothing = TRUE, 
                    smoothing.span = 500)
     
-    # dml <- data.frame(dml) ##w
-    names(dml)[3:4] <- c(input$dss_comp1_name, input$dss_comp2_name) ## w
-    
+    ## below added by R Wu
+    # change names to group names. 
+    names(dml)[3:4] <- c(paste0(input$dss_comp1_name, ".mu"), paste0(input$dss_comp2_name, ".mu")) ## w
+    ## end addition by R Wu
     dml
   })
   
