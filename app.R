@@ -2567,7 +2567,10 @@ server <- function(input, output, session) {
                    equal.disp = TRUE,
                    smoothing = TRUE, 
                    smoothing.span = 500)
-    names[dml][2:3] <- c(input$dss_comp1_name, input$dss_comp2_name)
+    
+    # dml <- data.frame(dml) ##w
+    names(dml)[3:4] <- c(input$dss_comp1_name, input$dss_comp2_name) ## w
+    
     dml
   })
   
@@ -2579,6 +2582,7 @@ server <- function(input, output, session) {
                    incProgress(0.2, detail = "Smoothing")
                    incProgress(0.3, detail = "Estimating dispersion for each CpG site, this will take a while...")
                    dml <- fdtdss()
+                   
                    dml <- as.tibble(dml) %>% 
                      unite("chr_start", chr, pos)
                    
