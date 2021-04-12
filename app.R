@@ -1,11 +1,11 @@
 # This app is used for analyzing RNA-seq and DNA methyl-seq data by Konglab at Rutgers University 
-# Author: Meinizi Zheng 
-# Email: meinizi.z@hotmail.com 
-# Maintenance by R Wu and D Sargsyan
+# Authors: R Wu and D Sargsyan
 
-## chanage below date if any changes were made to this app. This date will b displayed in the main UI.
-update_date <-"Feb 6, 2021"
-
+try(source("VERSION.R"), silent = TRUE)
+LOCAL_VERSION <- UPDATE_VERSION
+try(source(UPDATE_URL), silent = TRUE)
+# try(source(paste0("https://raw.githubusercontent.com/", UPDATE_REPO, "/master/VERSION.R")), silent = TRUE)
+REMOTE_VERSION <- UPDATE_VERSION
 
 
 ### changelog 
@@ -21,65 +21,8 @@ update_date <-"Feb 6, 2021"
 # May 6, 2019 R Wu.  added scripts for first time installation of needed packages.
 # v1.1 4-17-2019
 # 
-
-
-#
  
-
-
-# Reference: https://www.nextflow.io/docs/latest/getstarted.html
-## Shinyapps.io detects and installs packages for you automatically when you call deployApp(). 
-## Do not need, nor should have any calls to install.packages() as below anywhere in your source code.
-## Below installation check is only for local installation
-# # 1. CRAN packages----
-# packages <- c("shinydashboard",
-#               "data.table",
-#               "dplyr",
-#               "DT",
-#               "farver",
-#               "fgsea",
-#               "ggdendro",
-#               "ggplot2",
-#               "gridExtra",
-#               "knitr",
-#               "MASS",
-#               "packrat",
-#               "pheatmap",
-#               "plotly",
-#               "RColorBrewer",
-#               "readxl",
-#               "shiny",
-#               "shinyBS",
-#               "shinyFiles",
-#               "shinythemes",
-#               "shinyWidgets",
-#               "stringr",
-#               "tibble",
-#               "units",
-#               "VennDiagram",
-#               "zip",
-#               "tidyverse")
-# if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
-#   install.packages(the setdiff(packages, rownames(installed.packages())))
-# }
-#
-# # 2. Bioconductor packages----
-# if (!requireNamespace("BiocManager", quietly = TRUE))
-#   install.packages("BiocManager")
-# BiocManager::install("BiocInstaller", version = "3.8")
-# BiocManager::install("DESeq2", version = "3.8")
-# BiocManager::install("DEGseq", version = "3.8")
-# BiocManager::install("GOSemSim", version = "3.8")
-# BiocManager::install("ChIPseeker", version = "3.8")
-# BiocManager::install("TxDb.Mmusculus.UCSC.mm10.knownGene", version = "3.8")
-# BiocManager::install("DSS", version = "3.8")
-# BiocManager::install("farver", version = "3.8")
-# BiocManager::install("units", version = "3.8")
-# BiocManager::install("fgsea", version = "3.8")
-# BiocManager::install("org.Mm.eg.db", version = "3.8")
-
-
-### below added by R Wu
+ 
 # 1. CRAN packages----
 cran_packages <- c("shinydashboard",
                    "data.table",
@@ -112,7 +55,9 @@ cran_packages <- c("shinydashboard",
                    # "NewPackage", # uncomment this line and change the name in duoble quotes to add more package. Add more lines if desire
                    "BiocManager")
 
-if (length(setdiff(cran_packages, rownames(installed.packages()))) > 0) {install.packages(setdiff(cran_packages, rownames(installed.packages()))) }
+if (length(setdiff(cran_packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(cran_packages, rownames(installed.packages()))) 
+  }
 #
 # # 2. Bioconductor packages----
 bio_packages <- c("DESeq2",
@@ -129,9 +74,12 @@ bio_packages <- c("DESeq2",
                   # "dada2",
                   "units")
 
-if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {BiocManager::install(setdiff(bio_packages, rownames(installed.packages())), update = F)}
+if (length(setdiff(bio_packages, rownames(installed.packages()))) > 0) {
+  BiocManager::install(setdiff(bio_packages, rownames(installed.packages())),
+                       update = F)
+  }
 
-### end addition by R Wu
+ 
 
 options(stringsAsFactors = FALSE)
 options(shiny.maxRequestSize = 60*1024^2) 
@@ -204,7 +152,9 @@ ui <- dashboardPage(dashboardHeader(title = "NGS Pipeline"),
                       tabItem(tabName = "introduction",
                               h2("Introduction to the App",
                                  style = "padding-left: 1em"),
-                              h3("Current version of this App was updated on ", update_date, ". In Rstudio, click Git then Pull for new version.",
+                              h4("Current local version is: ", LOCAL_VERSION,
+                                ". Latest remote version is: ", REMOTE_VERSION,
+                                ". In Rstudio, click Git then Pull to update.",
                                 style = "padding-left: 2em"), # by RW
                               p("This interactive web application (NGS pipeline) is developed in R with Shiny to 
                                 (1) Perform explorative analysis on RNA-seq and DNA methylation data
